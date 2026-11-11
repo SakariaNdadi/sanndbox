@@ -1,0 +1,54 @@
+services:
+  portal-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: portal-server
+    ports:
+      - "9080:9080"
+    restart: unless-stopped
+
+  email-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: email-server
+    ports:
+      - "2525:2525"
+      - "9081:9081"
+    restart: unless-stopped
+
+  sms-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: sms-server
+    ports:
+      - "9082:9082"
+    restart: unless-stopped
+
+  whatsapp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: whatsapp-server
+    env_file:
+      - path: .env
+        required: false
+    ports:
+      - "9083:9083"
+    restart: unless-stopped
+
+  telegram-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: telegram-server
+    ports:
+      - "9084:9084"
+    restart: unless-stopped

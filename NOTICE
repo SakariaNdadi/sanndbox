@@ -1,0 +1,9 @@
+Communications Sanndbox System
+
+This product includes software and reference workflows adapted from:
+whatsapp-business-jaspers-market (https://github.com/fbsamples/whatsapp-business-jaspers-market)
+Copyright (c) Meta Platforms, Inc. and affiliates.
+Licensed under the Apache License, Version 2.0.
+
+Modifications:
+- Ported Node.js Graph API service, webhook handlers, conversation state machine, and message templates to Go in cmd/whatsapp-server/.

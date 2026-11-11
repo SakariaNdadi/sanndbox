@@ -1,0 +1,9 @@
+basePath: /
+info:
+  contact: {}
+  description: Unified Landing Portal for Email (:9081), SMS (:9082), and IM (:9083)
+    Sanndbox Servers.
+  title: Communications Sanndbox Portal
+  version: 1.0.0
+paths: {}
+swagger: "2.0"

@@ -1,0 +1,12 @@
+/bin/
+*.exe
+*.test
+*.out
+vendor/
+.env
+.env.*
+!.env.example
+.idea/
+.vscode/
+.DS_Store
+graphify-out/

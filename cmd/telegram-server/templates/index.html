@@ -1,0 +1,635 @@
+{{define "telegram_card"}}
+<div id="tg-{{.ID}}" class="flex justify-end mb-3">
+    <div class="max-w-md rounded-2xl px-3.5 py-2 shadow-sm bg-[#eeffde] dark:bg-[#2b5278]">
+        <p class="text-sm whitespace-pre-wrap">{{.Message}}</p>
+    </div>
+</div>
+{{end}}
+
+{{define "index.html"}}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Desktop | MTProto & Bot API Sanndbox (:9084)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+                    }
+                }
+            }
+        };
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+
+        body,
+        html {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .tg-wallpaper {
+            background: linear-gradient(135deg, #98b49b 0%, #c6d8b9 50%, #8fa893 100%);
+        }
+
+        html.dark .tg-wallpaper {
+            background: linear-gradient(135deg, #0e1621 0%, #17212b 100%);
+        }
+
+        .tg-bubble {
+            border-radius: 14px;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+        }
+    </style>
+</head>
+
+<body
+    class="bg-[#f1f5f9] dark:bg-[#0e1621] text-slate-900 dark:text-slate-100 h-screen flex flex-col overflow-hidden transition-colors duration-200"
+    x-data="telegramApp()" x-init="initApp()">
+
+    <!-- Top Telegram Header -->
+    <header
+        class="h-12 bg-[#24A1DE] dark:bg-[#17212b] text-white px-4 flex items-center justify-between shrink-0 z-30 shadow-sm border-b border-black/10 dark:border-[#101921]">
+        <div class="flex items-center gap-3">
+            <a href="http://localhost:9080"
+                class="px-2.5 py-1 rounded-md bg-black/15 hover:bg-black/25 text-xs font-medium flex items-center gap-1.5 transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Hub (:9080)
+            </a>
+            <div class="flex items-center gap-2">
+                <span
+                    class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center font-bold text-xs">TG</span>
+                <span class="font-semibold text-sm tracking-tight">Telegram Desktop</span>
+                <span
+                    class="hidden md:inline-block text-[11px] bg-black/15 px-2 py-0.5 rounded-full">core.telegram.org/methods
+                    (:9084)</span>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button @click="inspectorOpen = !inspectorOpen"
+                :class="inspectorOpen ? 'bg-white text-[#24A1DE]' : 'bg-black/15 text-white hover:bg-black/25'"
+                class="px-2.5 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                <span x-text="inspectorOpen ? 'Hide MTProto Inspector' : 'MTProto Diagnostics'"></span>
+            </button>
+            <div class="flex items-center bg-black/15 p-0.5 rounded-lg text-[11px]">
+                <button @click="setTheme('system')"
+                    :class="themeMode === 'system' ? 'bg-white text-[#24A1DE] font-semibold' : 'text-white/80'"
+                    class="px-2 py-0.5 rounded">System</button>
+                <button @click="setTheme('light')"
+                    :class="themeMode === 'light' ? 'bg-white text-[#24A1DE] font-semibold' : 'text-white/80'"
+                    class="px-2 py-0.5 rounded">Light</button>
+                <button @click="setTheme('dark')"
+                    :class="themeMode === 'dark' ? 'bg-white text-[#24A1DE] font-semibold' : 'text-white/80'"
+                    class="px-2 py-0.5 rounded">Dark</button>
+            </div>
+            <a href="http://localhost:9083"
+                class="px-2.5 py-1 bg-[#25D366] hover:bg-[#1da851] rounded-md text-xs font-medium transition-colors">WhatsApp
+                (:9083)</a>
+            <a href="/docs"
+                class="px-2.5 py-1 bg-black/15 hover:bg-black/25 rounded-md text-xs font-medium transition-colors">OpenAPI</a>
+        </div>
+    </header>
+
+    <div class="flex-1 flex overflow-hidden">
+
+        <!-- Left Sidebar: Telegram Channels & Official Method Presets -->
+        <aside
+            class="w-80 bg-white dark:bg-[#17212b] border-r border-slate-200 dark:border-[#101921] flex flex-col shrink-0 select-none">
+            <!-- Active Channel Card -->
+            <div class="px-4 py-3 border-b border-slate-200 dark:border-[#101921] flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-10 h-10 rounded-full bg-gradient-to-br from-[#24A1DE] to-sky-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+                        FA
+                    </div>
+                    <div>
+                        <div class="text-sm font-semibold text-slate-900 dark:text-white">@fraud_audit_ops</div>
+                        <div class="text-[11px] text-slate-500 dark:text-slate-400">1,420 subscribers • Bot Admin</div>
+                    </div>
+                </div>
+                <button @click="clearSession()"
+                    class="text-[11px] text-rose-500 hover:underline font-medium">Clear</button>
+            </div>
+
+            <!-- Quick Presets -->
+            <div class="p-3 border-b border-slate-200 dark:border-[#101921] space-y-2 overflow-y-auto">
+                <div class="text-[11px] font-semibold uppercase tracking-wider text-[#24A1DE]">Telegram Scenarios</div>
+                <div class="grid grid-cols-2 gap-1.5">
+                    <button @click="loadPreset('audit_text')"
+                        class="px-2.5 py-2 rounded-lg bg-sky-50 dark:bg-[#2b5278]/40 hover:bg-sky-100 text-left border border-[#24A1DE]/20 transition-colors">
+                        <div class="text-xs font-semibold">Fraud Audit Summary</div>
+                        <div class="text-[10px] text-slate-500 dark:text-slate-400">messages.sendMessage</div>
+                    </button>
+                    <button @click="loadPreset('photo_Simulator')"
+                        class="px-2.5 py-2 rounded-lg bg-slate-100 dark:bg-[#242f3d] hover:bg-slate-200 text-left transition-colors">
+                        <div class="text-xs font-semibold">Simulator Chart Photo</div>
+                        <div class="text-[10px] text-slate-500 dark:text-slate-400">InputMediaUploadedPhoto</div>
+                    </button>
+                    <button @click="loadPreset('sar_document')"
+                        class="px-2.5 py-2 rounded-lg bg-slate-100 dark:bg-[#242f3d] hover:bg-slate-200 text-left transition-colors">
+                        <div class="text-xs font-semibold">SAR/STR PDF Bundle</div>
+                        <div class="text-[10px] text-slate-500 dark:text-slate-400">InputMediaUploadedDocument</div>
+                    </button>
+                    <button @click="loadPreset('reaction')"
+                        class="px-2.5 py-2 rounded-lg bg-slate-100 dark:bg-[#242f3d] hover:bg-slate-200 text-left transition-colors">
+                        <div class="text-xs font-semibold">Send 🔥 Reaction</div>
+                        <div class="text-[10px] text-slate-500 dark:text-slate-400">messages.sendReaction</div>
+                    </button>
+                </div>
+
+                <!-- MTProto Method Selector -->
+                <div class="pt-2 space-y-2">
+                    <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">MTProto Method (<code
+                            class="font-mono">core.telegram.org</code>)</div>
+                    <select x-model="form.method" @change="onMethodChange()"
+                        class="w-full px-2.5 py-1.5 text-xs font-mono rounded-lg bg-slate-100 dark:bg-[#242f3d] border border-slate-200 dark:border-slate-700">
+                        <option value="messages.sendMessage">messages.sendMessage</option>
+                        <option value="messages.sendMedia">messages.sendMedia</option>
+                        <option value="messages.sendMultiMedia">messages.sendMultiMedia</option>
+                        <option value="messages.forwardMessages">messages.forwardMessages</option>
+                        <option value="messages.editMessage">messages.editMessage</option>
+                        <option value="messages.deleteMessages">messages.deleteMessages</option>
+                        <option value="messages.sendReaction">messages.sendReaction</option>
+                        <option value="messages.getHistory">messages.getHistory</option>
+                        <option value="channels.ExportMessageLink">channels.ExportMessageLink</option>
+                        <option value="users.getFullUser">users.getFullUser</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Active Chat List Item -->
+            <div class="flex-1 overflow-y-auto">
+                <div
+                    class="px-4 py-3 flex items-center gap-3 bg-[#24A1DE]/10 dark:bg-[#2b5278]/50 border-l-4 border-[#24A1DE]">
+                    <div
+                        class="w-11 h-11 rounded-full bg-[#24A1DE] text-white flex items-center justify-center font-bold text-sm shrink-0">
+                        FA</div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between">
+                            <span class="font-semibold text-sm truncate" x-text="form.peer"></span>
+                            <span class="text-[11px] text-[#24A1DE] font-medium"
+                                x-text="records.length ? formatTime(records[0].timestamp) : 'Now'"></span>
+                        </div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5"
+                            x-text="records.length ? records[0].message : 'No messages yet'"></p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Center: Pure Authentic Telegram Desktop Chat View -->
+        <main class="flex-1 flex flex-col tg-wallpaper relative overflow-hidden">
+            <!-- Telegram Chat Header -->
+            <div
+                class="h-14 bg-white dark:bg-[#17212b] px-5 flex items-center justify-between border-b border-slate-200 dark:border-[#101921] shrink-0 z-10">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-9 h-9 rounded-full bg-[#24A1DE] text-white flex items-center justify-center font-bold text-xs">
+                        FA</div>
+                    <div>
+                        <div class="font-semibold text-sm text-slate-900 dark:text-white" x-text="form.peer"></div>
+                        <div class="text-xs text-slate-500 dark:text-slate-400">bot: <span x-text="form.sender"></span>
+                            • online</div>
+                    </div>
+                </div>
+                <template x-if="selectedRecord">
+                    <button @click="inspectorOpen = true"
+                        class="px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 border" :class="{
+                                'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/50 dark:border-emerald-800 dark:text-emerald-300': selectedRecord.report.overallStatus === 'PASS',
+                                'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-950/50 dark:border-amber-800 dark:text-amber-300': selectedRecord.report.overallStatus === 'WARN',
+                                'bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-950/50 dark:border-rose-800 dark:text-rose-300': selectedRecord.report.overallStatus === 'FAIL'
+                            }">
+                        <span class="font-mono" x-text="selectedRecord.method"></span>
+                        <span>•</span>
+                        <span x-text="selectedRecord.report.overallStatus"></span>
+                    </button>
+                </template>
+            </div>
+
+            <!-- Messages Stream (Chronological Top-to-Bottom) -->
+            <div id="tg-chat-scroll" class="flex-1 overflow-y-auto px-6 md:px-16 py-5 space-y-3 flex flex-col">
+                <template x-if="records.length === 0">
+                    <div class="my-auto flex flex-col items-center justify-center text-center">
+                        <div class="bg-black/25 backdrop-blur-md text-white rounded-2xl px-6 py-4 max-w-sm">
+                            <p class="font-semibold text-sm">No messages here yet...</p>
+                            <p class="text-xs text-white/80 mt-1">Send a message, attach a photo/PDF below, or pick a
+                                scenario on the left.</p>
+                        </div>
+                    </div>
+                </template>
+
+                <template x-for="item in chronologicalRecords" :key="item.id">
+                    <div class="flex items-end justify-end gap-2">
+                        <!-- Subtle Validation Pill Next to Bubble -->
+                        <button @click="inspectRecord(item)" title="Click to inspect MTProto evaluation"
+                            class="shrink-0 mb-1 px-2 py-0.5 rounded-full text-[10px] font-semibold shadow-sm border transition-transform hover:scale-105"
+                            :class="{
+                                    'bg-white/90 dark:bg-[#17212b] text-emerald-700 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800': item.report.overallStatus === 'PASS',
+                                    'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700': item.report.overallStatus === 'WARN',
+                                    'bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-700': item.report.overallStatus === 'FAIL'
+                                }">
+                            <span
+                                x-text="item.report.overallStatus === 'PASS' ? '✓ PASS' : (item.report.overallStatus === 'WARN' ? '⚠ WARN' : '✕ FAIL')"></span>
+                        </button>
+
+                        <!-- AUTHENTIC TELEGRAM DESKTOP MESSAGE BUBBLE -->
+                        <div @click="inspectRecord(item)"
+                            class="max-w-[430px] w-full bg-[#eeffde] dark:bg-[#2b5278] tg-bubble overflow-hidden cursor-pointer transition-shadow"
+                            :class="selectedRecord && selectedRecord.id === item.id ? 'ring-2 ring-[#24A1DE]' : ''">
+
+                            <!-- 1. TELEGRAM PHOTO ATTACHMENT (InputMediaUploadedPhoto) -->
+                            <template
+                                x-if="item.media && (item.media.tlType === 'InputMediaUploadedPhoto' || (item.media.mimeType && item.media.mimeType.startsWith('image/')))">
+                                <div class="p-1 pb-0">
+                                    <img :src="item.media.previewUrl || 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=900&q=80'"
+                                        :alt="item.media.filename"
+                                        class="w-full max-h-60 object-cover rounded-t-[11px] rounded-b-[4px] block">
+                                </div>
+                            </template>
+
+                            <!-- 2. TELEGRAM DOCUMENT ATTACHMENT (InputMediaUploadedDocument with Circular File Icon) -->
+                            <template
+                                x-if="item.media && item.media.tlType !== 'InputMediaUploadedPhoto' && (!item.media.mimeType || !item.media.mimeType.startsWith('image/'))">
+                                <div class="px-3.5 pt-3 pb-1 flex items-center gap-3">
+                                    <div
+                                        class="w-11 h-11 rounded-full bg-[#24A1DE] text-white flex items-center justify-center shrink-0 shadow-sm">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                        </svg>
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="text-sm font-semibold text-slate-900 dark:text-white truncate"
+                                            x-text="item.media.filename"></div>
+                                        <div class="text-xs text-[#4fae4e] dark:text-[#6ab3f3]"
+                                            x-text="formatBytes(item.media.sizeBytes) + ' • ' + item.media.mimeType">
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <!-- 3. MESSAGE TEXT + REACTION PILL + TIMESTAMP -->
+                            <div class="px-3.5 py-2">
+                                <p class="text-[14.2px] leading-[19px] text-slate-900 dark:text-white whitespace-pre-wrap break-words"
+                                    x-text="item.message"></p>
+
+                                <div class="flex items-center justify-between gap-2 mt-1.5">
+                                    <div>
+                                        <template x-if="item.reaction">
+                                            <span
+                                                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#24A1DE]/15 dark:bg-white/15 text-xs font-semibold text-[#24A1DE] dark:text-white">
+                                                <span x-text="item.reaction"></span>
+                                                <span class="text-[11px]">1</span>
+                                            </span>
+                                        </template>
+                                    </div>
+                                    <div
+                                        class="flex items-center gap-1 select-none text-[11px] text-[#4fae4e] dark:text-[#6ab3f3]">
+                                        <span x-text="formatTime(item.timestamp)"></span>
+                                        <span class="font-bold">✓✓</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Attachment Preview Bar Before Sending -->
+            <div x-show="form.hasMedia" x-cloak
+                class="bg-white dark:bg-[#17212b] px-4 py-2.5 border-t border-slate-200 dark:border-[#101921] flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                    <template x-if="form.mediaPreviewUrl && form.mimeType.startsWith('image/')">
+                        <img :src="form.mediaPreviewUrl"
+                            class="w-12 h-12 rounded-lg object-cover border border-black/10 shrink-0">
+                    </template>
+                    <template x-if="!form.mediaPreviewUrl || !form.mimeType.startsWith('image/')">
+                        <div
+                            class="w-10 h-10 rounded-full bg-[#24A1DE] text-white flex items-center justify-center text-xs font-bold shrink-0">
+                            DOC</div>
+                    </template>
+                    <div class="min-w-0">
+                        <div class="text-xs font-semibold truncate" x-text="form.filename"></div>
+                        <div class="text-[11px] text-slate-500"
+                            x-text="form.tlType + ' • ' + formatBytes(form.sizeBytes)"></div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="text" x-model="form.mediaPreviewUrl" placeholder="Or paste image URL..."
+                        class="px-2.5 py-1 text-xs rounded-md bg-slate-100 dark:bg-[#242f3d] border border-slate-300 dark:border-slate-700 w-48">
+                    <button @click="clearAttachment()"
+                        class="text-xs text-rose-500 hover:underline px-2 py-1">Remove</button>
+                </div>
+            </div>
+
+            <!-- Authentic Telegram Desktop Bottom Composer Bar -->
+            <form @submit.prevent="submitMethod()"
+                class="bg-white dark:bg-[#17212b] px-4 py-2.5 flex items-center gap-2.5 shrink-0 border-t border-slate-200 dark:border-[#101921]">
+                <input type="file" x-ref="tgFileInput" @change="handleFileUpload($event)"
+                    accept="image/*,.pdf,.csv,.zip" class="hidden">
+
+                <button type="button" @click="$refs.tgFileInput.click()" title="Attach photo or document"
+                    class="p-2 rounded-full text-slate-500 hover:bg-slate-100 dark:hover:bg-[#242f3d] transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                    </svg>
+                </button>
+
+                <input type="text" x-model="form.message" placeholder="Write a message..."
+                    class="flex-1 bg-transparent text-sm text-slate-900 dark:text-white focus:outline-none">
+
+                <button type="submit"
+                    class="w-9 h-9 rounded-full bg-[#24A1DE] hover:bg-[#1d8abf] text-white flex items-center justify-center shrink-0 shadow-sm transition-colors">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                    </svg>
+                </button>
+            </form>
+        </main>
+
+        <!-- Right Drawer: Collapsible MTProto Diagnostics Inspector -->
+        <aside x-show="inspectorOpen" x-cloak
+            class="w-96 bg-white dark:bg-[#17212b] border-l border-slate-200 dark:border-[#101921] flex flex-col shrink-0 overflow-y-auto">
+            <div
+                class="px-4 py-3 bg-slate-50 dark:bg-[#242f3d] border-b border-slate-200 dark:border-[#101921] flex items-center justify-between">
+                <div>
+                    <h2 class="text-xs font-bold uppercase tracking-wider">MTProto Method Inspector</h2>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400">core.telegram.org/methods validation</p>
+                </div>
+                <button @click="inspectorOpen = false"
+                    class="text-slate-400 hover:text-slate-700 dark:hover:text-white text-sm font-bold px-2">✕</button>
+            </div>
+
+            <template x-if="selectedRecord">
+                <div class="p-4 space-y-3 text-xs">
+                    <div class="p-3 rounded-xl border flex items-center justify-between" :class="{
+                             'bg-emerald-50/70 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800': selectedRecord.report.overallStatus === 'PASS',
+                             'bg-amber-50/70 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800': selectedRecord.report.overallStatus === 'WARN',
+                             'bg-rose-50/70 border-rose-200 dark:bg-rose-950/30 dark:border-rose-800': selectedRecord.report.overallStatus === 'FAIL'
+                         }">
+                        <div>
+                            <div class="font-bold text-sm" x-text="selectedRecord.method"></div>
+                            <div class="text-[11px] text-slate-500 mt-0.5">
+                                Return TL: <span class="font-mono font-semibold"
+                                    x-text="selectedRecord.report.tlReturnType"></span> •
+                                random_id: <span class="font-mono" x-text="selectedRecord.randomId"></span>
+                            </div>
+                        </div>
+                        <span class="font-bold px-2 py-0.5 rounded bg-black/5 dark:bg-white/10"
+                            x-text="selectedRecord.report.overallStatus"></span>
+                    </div>
+
+                    <div class="space-y-2">
+                        <template x-for="crit in selectedRecord.report.criteria" :key="crit.category + crit.target">
+                            <div
+                                class="p-2.5 rounded-lg bg-slate-50 dark:bg-[#242f3d] border border-slate-200/70 dark:border-slate-700">
+                                <div class="flex items-center justify-between">
+                                    <span class="font-semibold" x-text="crit.category"></span>
+                                    <span class="text-[10px] font-bold px-1.5 py-0.5 rounded" :class="{
+                                              'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300': crit.status === 'PASS',
+                                              'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300': crit.status === 'WARN',
+                                              'bg-rose-100 text-rose-800 dark:bg-rose-900/50 dark:text-rose-300': crit.status === 'FAIL'
+                                          }" x-text="crit.status"></span>
+                                </div>
+                                <div class="text-[11px] font-mono text-[#24A1DE] mt-0.5" x-text="crit.target"></div>
+                                <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-1" x-text="crit.details">
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </template>
+        </aside>
+    </div>
+
+    <script>
+        function telegramApp() {
+            return {
+                themeMode: sessionStorage.getItem('Sanndbox_theme_mode') || 'system',
+                sessionId: '',
+                inspectorOpen: false,
+                records: [],
+                selectedRecord: null,
+                form: {
+                    method: 'messages.sendMessage',
+                    peer: '@fraud_audit_ops',
+                    sender: '@risk_sentinel_bot',
+                    randomId: 849201928374,
+                    messageId: 4021,
+                    reaction: '',
+                    message: '',
+                    hasMedia: false,
+                    tlType: 'InputMediaUploadedPhoto',
+                    filename: 'per_lender_simulator.png',
+                    mimeType: 'image/png',
+                    sizeBytes: 420000,
+                    mediaPreviewUrl: ''
+                },
+                get chronologicalRecords() {
+                    return [...this.records].reverse();
+                },
+                initApp() {
+                    let sid = sessionStorage.getItem('Sanndbox_tab_session_id');
+                    if (!sid) {
+                        sid = 'sess_' + Math.random().toString(36).substring(2, 11) + '_' + Date.now();
+                        sessionStorage.setItem('Sanndbox_tab_session_id', sid);
+                    }
+                    this.sessionId = sid;
+                    this.applyTheme();
+                    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+                        if (this.themeMode === 'system') this.applyTheme();
+                    });
+
+                    fetch('/api/v1/telegram?sessionId=' + encodeURIComponent(this.sessionId))
+                        .then(r => r.json())
+                        .then(data => {
+                            if (Array.isArray(data) && data.length > 0) {
+                                this.records = data;
+                                this.selectedRecord = data[0];
+                                this.scrollToBottom();
+                            } else {
+                                this.loadPreset('audit_text');
+                            }
+                        });
+
+                    const evtSource = new EventSource('/events?sessionId=' + encodeURIComponent(this.sessionId));
+                    evtSource.addEventListener('telegram-evaluated', (e) => {
+                        try {
+                            const rec = JSON.parse(e.data);
+                            const existingIdx = this.records.findIndex(r => r.id === rec.id);
+                            if (existingIdx !== -1) this.records.splice(existingIdx, 1);
+                            this.records.unshift(rec);
+                            this.selectedRecord = rec;
+                            this.scrollToBottom();
+                        } catch (err) { }
+                    });
+                },
+                scrollToBottom() {
+                    setTimeout(() => {
+                        const el = document.getElementById('tg-chat-scroll');
+                        if (el) el.scrollTop = el.scrollHeight;
+                    }, 60);
+                },
+                inspectRecord(item) {
+                    this.selectedRecord = item;
+                    this.inspectorOpen = true;
+                },
+                setTheme(mode) {
+                    this.themeMode = mode;
+                    sessionStorage.setItem('Sanndbox_theme_mode', mode);
+                    this.applyTheme();
+                },
+                applyTheme() {
+                    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    const isDark = this.themeMode === 'dark' || (this.themeMode === 'system' && prefersDark);
+                    document.documentElement.classList.toggle('dark', isDark);
+                },
+                onMethodChange() {
+                    this.form.randomId = Math.floor(Math.random() * 900000000000) + 100000000000;
+                },
+                handleFileUpload(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    this.form.hasMedia = true;
+                    this.form.method = 'messages.sendMedia';
+                    this.form.filename = file.name;
+                    this.form.mimeType = file.type || 'image/jpeg';
+                    this.form.sizeBytes = file.size || 256000;
+                    if (file.type && file.type.startsWith('image/')) {
+                        this.form.tlType = 'InputMediaUploadedPhoto';
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            this.form.mediaPreviewUrl = e.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                    } else {
+                        this.form.tlType = 'InputMediaUploadedDocument';
+                        this.form.mediaPreviewUrl = '';
+                    }
+                },
+                clearAttachment() {
+                    this.form.hasMedia = false;
+                    this.form.mediaPreviewUrl = '';
+                    this.form.method = 'messages.sendMessage';
+                    if (this.$refs.tgFileInput) this.$refs.tgFileInput.value = '';
+                },
+                loadPreset(type) {
+                    this.form.randomId = Math.floor(Math.random() * 900000000000) + 100000000000;
+                    if (type === 'audit_text') {
+                        this.form.method = 'messages.sendMessage';
+                        this.form.hasMedia = false;
+                        this.form.reaction = '';
+                        this.form.message = "• Retiring the old per-lender fraud system (item 5) deletes data in every lender's database. I'd need your OK first.\n• Moving the counting into the database (item 12) is a larger rewrite of how rules are evaluated.\n• Alerts created before this change have no case key, so each one gets one fresh alert on its next hit, then normal grouping applies.";
+                        this.submitMethod();
+                    } else if (type === 'photo_Simulator') {
+                        this.form.method = 'messages.sendMedia';
+                        this.form.hasMedia = true;
+                        this.form.tlType = 'InputMediaUploadedPhoto';
+                        this.form.filename = 'per_lender_simulator_breakdown.jpg';
+                        this.form.mimeType = 'image/jpeg';
+                        this.form.sizeBytes = 640000;
+                        this.form.mediaPreviewUrl = 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=900&q=80';
+                        this.form.reaction = '';
+                        this.form.message = "Per-lender breakdown in the simulator with back-fill start date and deactivation timestamps.";
+                        this.submitMethod();
+                    } else if (type === 'sar_document') {
+                        this.form.method = 'messages.sendMedia';
+                        this.form.hasMedia = true;
+                        this.form.tlType = 'InputMediaUploadedDocument';
+                        this.form.filename = 'SAR_STR_Investigation_Case_Notes.pdf';
+                        this.form.mimeType = 'application/pdf';
+                        this.form.sizeBytes = 1485760;
+                        this.form.mediaPreviewUrl = '';
+                        this.form.reaction = '';
+                        this.form.message = "Investigation case management: notes, attachments, SAR/STR tracking bundle.";
+                        this.submitMethod();
+                    } else if (type === 'reaction') {
+                        this.form.method = 'messages.sendReaction';
+                        this.form.hasMedia = false;
+                        this.form.messageId = 4021;
+                        this.form.reaction = '🔥';
+                        this.form.message = "Acknowledged audit item #12 (DB rule evaluation rewrite)";
+                        this.submitMethod();
+                    }
+                },
+                submitMethod() {
+                    if (!this.form.message.trim() && !this.form.hasMedia && !this.form.reaction) return;
+                    const payload = {
+                        sessionId: this.sessionId,
+                        method: this.form.method,
+                        peer: this.form.peer,
+                        sender: this.form.sender,
+                        randomId: Number(this.form.randomId),
+                        messageId: Number(this.form.messageId),
+                        reaction: this.form.reaction,
+                        message: this.form.message
+                    };
+                    if (this.form.hasMedia) {
+                        payload.media = {
+                            tlType: this.form.tlType,
+                            filename: this.form.filename,
+                            mimeType: this.form.mimeType,
+                            sizeBytes: Number(this.form.sizeBytes),
+                            previewUrl: this.form.mediaPreviewUrl
+                        };
+                    }
+                    fetch('/api/v1/telegram', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    }).then(r => {
+                        if (r.ok) {
+                            this.form.message = '';
+                            this.form.reaction = '';
+                            this.clearAttachment();
+                            this.form.randomId = Math.floor(Math.random() * 900000000000) + 100000000000;
+                        }
+                    });
+                },
+                clearSession() {
+                    fetch('/api/v1/telegram/clear?sessionId=' + encodeURIComponent(this.sessionId), { method: 'POST' })
+                        .then(() => {
+                            this.records = [];
+                            this.selectedRecord = null;
+                        });
+                },
+                formatTime(iso) {
+                    try {
+                        return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    } catch (e) { return iso; }
+                },
+                formatBytes(bytes) {
+                    if (!bytes || bytes === 0) return '0 B';
+                    const k = 1024;
+                    const sizes = ['B', 'KB', 'MB', 'GB'];
+                    const i = Math.floor(Math.log(bytes) / Math.log(k));
+                    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+                }
+            };
+        }
+    </script>
+</body>
+
+</html>
+{{end}}

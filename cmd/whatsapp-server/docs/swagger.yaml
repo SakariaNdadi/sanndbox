@@ -1,0 +1,566 @@
+basePath: /
+definitions:
+  main.AttributionEvent:
+    properties:
+      event_name:
+        type: string
+      event_timestamp:
+        type: string
+      inbound_message_id:
+        type: string
+      receiver_phone_number_id:
+        type: string
+      schema_version:
+        type: integer
+      source_surface:
+        type: string
+      webhook_delivery_count:
+        type: integer
+    type: object
+  main.EvaluationCriterion:
+    properties:
+      category:
+        type: string
+      details:
+        type: string
+      status:
+        $ref: '#/definitions/main.EvaluationStatus'
+      target:
+        type: string
+    type: object
+  main.EvaluationStatus:
+    enum:
+    - PASS
+    - WARN
+    - FAIL
+    type: string
+    x-enum-varnames:
+    - StatusPass
+    - StatusWarn
+    - StatusFail
+  main.IMEvaluationReport:
+    properties:
+      characterCount:
+        type: integer
+      criteria:
+        items:
+          $ref: '#/definitions/main.EvaluationCriterion'
+        type: array
+      eventType:
+        type: string
+      overallStatus:
+        $ref: '#/definitions/main.EvaluationStatus'
+    type: object
+  main.IMMediaAttachment:
+    properties:
+      filename:
+        type: string
+      id:
+        type: string
+      mimeType:
+        type: string
+      previewUrl:
+        type: string
+      sizeBytes:
+        type: integer
+    type: object
+  main.IMRecord:
+    properties:
+      attribution:
+        $ref: '#/definitions/main.AttributionEvent'
+      caseKey:
+        type: string
+      deliveryStatus:
+        type: string
+      direction:
+        type: string
+      eventType:
+        type: string
+      followUpArmed:
+        type: boolean
+      id:
+        type: string
+      interactiveButtons:
+        items:
+          $ref: '#/definitions/main.InteractiveReplyButton'
+        type: array
+      media:
+        $ref: '#/definitions/main.IMMediaAttachment'
+      platform:
+        type: string
+      rawGraphPayload:
+        type: string
+      recipient:
+        type: string
+      report:
+        $ref: '#/definitions/main.IMEvaluationReport'
+      sender:
+        type: string
+      sessionId:
+        type: string
+      source:
+        type: string
+      templatePreview:
+        $ref: '#/definitions/main.TemplatePreviewData'
+      text:
+        type: string
+      timestamp:
+        type: string
+      wamid:
+        type: string
+    type: object
+  main.IMSubmissionRequest:
+    properties:
+      attribution:
+        $ref: '#/definitions/main.AttributionEvent'
+      caseKey:
+        type: string
+      direction:
+        type: string
+      eventType:
+        type: string
+      interactiveButtons:
+        items:
+          $ref: '#/definitions/main.InteractiveReplyButton'
+        type: array
+      media:
+        $ref: '#/definitions/main.IMMediaAttachment'
+      platform:
+        type: string
+      rawGraphPayload:
+        type: string
+      recipient:
+        type: string
+      sender:
+        type: string
+      sessionId:
+        type: string
+      signatureStatus:
+        type: string
+      templatePreview:
+        $ref: '#/definitions/main.TemplatePreviewData'
+      text:
+        type: string
+    type: object
+  main.InteractiveReplyButton:
+    properties:
+      id:
+        type: string
+      title:
+        type: string
+    type: object
+  main.TemplateCarouselCard:
+    properties:
+      bodyText:
+        type: string
+      buttonCta:
+        type: string
+      buttonUrl:
+        type: string
+      cardIndex:
+        type: integer
+      imageId:
+        type: string
+      previewUrl:
+        type: string
+    type: object
+  main.TemplatePreviewData:
+    properties:
+      addSecurityRecommendation:
+        type: boolean
+      autofillText:
+        type: string
+      bodyParams:
+        items:
+          type: string
+        type: array
+      bodyText:
+        type: string
+      buttonCta:
+        type: string
+      buttonUrl:
+        type: string
+      carouselCards:
+        items:
+          $ref: '#/definitions/main.TemplateCarouselCard'
+        type: array
+      category:
+        type: string
+      codeExpirationMinutes:
+        type: integer
+      documentFilename:
+        type: string
+      expirationMs:
+        type: integer
+      footerText:
+        type: string
+      headerFormat:
+        type: string
+      headerMediaId:
+        type: string
+      headerPreviewUrl:
+        type: string
+      headerText:
+        type: string
+      isLto:
+        type: boolean
+      language:
+        type: string
+      ltoText:
+        type: string
+      name:
+        type: string
+      offerCode:
+        type: string
+      otpCode:
+        type: string
+      otpType:
+        type: string
+      packageName:
+        type: string
+      quickReplyButtons:
+        items:
+          type: string
+        type: array
+      signatureHash:
+        type: string
+    type: object
+  main.WABAMediaRecord:
+    properties:
+      envKey:
+        type: string
+      expiresAt:
+        type: string
+      filename:
+        type: string
+      mediaId:
+        type: string
+      mimeType:
+        type: string
+      phoneNumberId:
+        type: string
+      previewUrl:
+        type: string
+      sizeBytes:
+        type: integer
+      uploadHandle:
+        type: string
+    type: object
+  main.WABASanndboxConfig:
+    properties:
+      accessToken:
+        type: string
+      apiVersion:
+        type: string
+      appId:
+        type: string
+      appSecret:
+        type: string
+      envFilePreview:
+        type: string
+      graphBaseUrl:
+        type: string
+      groceriesMediaId:
+        type: string
+      isReady:
+        type: boolean
+      mediaAssets:
+        items:
+          $ref: '#/definitions/main.WABAMediaRecord'
+        type: array
+      phoneNumberId:
+        type: string
+      saladBowlMediaId:
+        type: string
+      sheetPanDinnerMediaId:
+        type: string
+      strawberriesMediaId:
+        type: string
+      templateScriptPreview:
+        type: string
+      validationErrors:
+        items:
+          type: string
+        type: array
+      verifyToken:
+        type: string
+      wabaId:
+        type: string
+    type: object
+  main.WABATemplateDefinition:
+    properties:
+      addSecurityRecommendation:
+        type: boolean
+      autofillText:
+        type: string
+      bodyParams:
+        items:
+          type: string
+        type: array
+      bodyText:
+        type: string
+      buttonCta:
+        type: string
+      buttonUrl:
+        type: string
+      carouselCards:
+        items:
+          $ref: '#/definitions/main.TemplateCarouselCard'
+        type: array
+      category:
+        type: string
+      codeExpirationMinutes:
+        type: integer
+      documentFilename:
+        type: string
+      footerText:
+        type: string
+      headerFormat:
+        type: string
+      headerMediaId:
+        type: string
+      headerPreviewUrl:
+        type: string
+      headerText:
+        type: string
+      id:
+        type: string
+      isLto:
+        type: boolean
+      language:
+        type: string
+      ltoText:
+        type: string
+      name:
+        type: string
+      offerCode:
+        type: string
+      otpCode:
+        type: string
+      otpType:
+        type: string
+      packageName:
+        type: string
+      quickReplyButtons:
+        items:
+          type: string
+        type: array
+      rawComponents: {}
+      signatureHash:
+        type: string
+      status:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: Meta WhatsApp Business Platform Sanndbox (:9083) modeled after fbsamples/whatsapp-business-jaspers-market/services.
+    Implements Graph API /{apiVersion}/{phoneNumberId}/messages, /{wabaId}/message_templates,
+    /{phoneNumberId}/media, /webhook (GET verify + POST X-Hub-Signature-256), entry_source_attributed
+    telemetry, 15s status follow-up cache, WABA Setup & .env generator, and Template
+    Studio.
+  title: WhatsApp Business Cloud API & Jasper's Market Sanndbox
+  version: 2.0.0
+paths:
+  /:
+    get:
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: HTML Dashboard
+          schema:
+            type: string
+      summary: Render WhatsApp Business & Jasper's Market Sanndbox UI
+  /{apiVersion}/{phoneNumberId}/messages:
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Graph API Send Message endpoint (/{apiVersion}/{phoneNumberId}/messages)
+  /api/v1/whatsapp:
+    get:
+      parameters:
+      - description: Browser Tab Session ID
+        in: query
+        name: sessionId
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/main.IMRecord'
+            type: array
+      summary: List evaluated WhatsApp records
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: WhatsApp Submission Payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/main.IMSubmissionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/main.IMRecord'
+      summary: Submit WhatsApp payload for Cloud API constraint evaluation
+  /api/v1/whatsapp/clear:
+    post:
+      parameters:
+      - description: Browser Tab Session ID
+        in: query
+        name: sessionId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: Cleared
+          schema:
+            type: string
+      summary: Clear session-scoped WhatsApp cache
+  /api/v1/whatsapp/config:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.WABASanndboxConfig'
+      summary: Get WABA Setup Configuration & .env status
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.WABASanndboxConfig'
+      summary: Update WABA Setup Configuration & validate media IDs
+  /api/v1/whatsapp/interact:
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/main.IMRecord'
+            type: array
+      summary: Trigger Jasper's Market Conversation Bot flow or Status Receipt
+  /api/v1/whatsapp/media:
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/main.WABAMediaRecord'
+      summary: Upload runtime media and generate phone-scoped Media ID
+  /api/v1/whatsapp/templates:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/main.WABATemplateDefinition'
+            type: array
+      summary: List WABA Message Templates (Jasper's Market + Custom)
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/main.WABATemplateDefinition'
+      summary: Create WABA Message Template (/{apiVersion}/{wabaId}/message_templates)
+  /docs:
+    get:
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: Swagger UI HTML
+          schema:
+            type: string
+      summary: Interactive OpenAPI 3.0 Documentation
+  /events:
+    get:
+      parameters:
+      - description: Browser Tab Session ID
+        in: query
+        name: sessionId
+        type: string
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: SSE Stream
+          schema:
+            type: string
+      summary: Real-time HTMX SSE stream
+  /webhook:
+    get:
+      parameters:
+      - description: Must be subscribe
+        in: query
+        name: hub.mode
+        required: true
+        type: string
+      - description: Verify Token configured in Setup
+        in: query
+        name: hub.verify_token
+        required: true
+        type: string
+      - description: Challenge nonce echoed back on 200 OK
+        in: query
+        name: hub.challenge
+        required: true
+        type: string
+      responses:
+        "200":
+          description: hub.challenge
+          schema:
+            type: string
+      summary: Verify WhatsApp Webhook Subscription (hub.verify_token & hub.challenge)
+    post:
+      consumes:
+      - application/json
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: EVENT_RECEIVED
+          schema:
+            type: string
+      summary: Receive WhatsApp Cloud API Webhook events (messages & statuses)
+swagger: "2.0"

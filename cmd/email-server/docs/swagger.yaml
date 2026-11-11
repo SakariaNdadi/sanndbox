@@ -1,0 +1,179 @@
+basePath: /
+definitions:
+  main.AttachmentPayload:
+    properties:
+      base64Data:
+        type: string
+      contentType:
+        type: string
+      filename:
+        type: string
+    type: object
+  main.EmailRecord:
+    properties:
+      attachments:
+        items:
+          $ref: '#/definitions/main.AttachmentPayload'
+        type: array
+      htmlBody:
+        type: string
+      id:
+        type: string
+      recipients:
+        items:
+          type: string
+        type: array
+      report:
+        $ref: '#/definitions/main.EvaluationReport'
+      sender:
+        type: string
+      sessionId:
+        type: string
+      source:
+        type: string
+      subject:
+        type: string
+      timestamp:
+        type: string
+    type: object
+  main.EmailSubmissionRequest:
+    properties:
+      attachments:
+        items:
+          $ref: '#/definitions/main.AttachmentPayload'
+        type: array
+      htmlBody:
+        type: string
+      recipients:
+        items:
+          type: string
+        type: array
+      sender:
+        type: string
+      sessionId:
+        type: string
+      subject:
+        type: string
+    type: object
+  main.EvaluationCriterion:
+    properties:
+      category:
+        type: string
+      details:
+        type: string
+      status:
+        $ref: '#/definitions/main.EvaluationStatus'
+      target:
+        type: string
+    type: object
+  main.EvaluationReport:
+    properties:
+      criteria:
+        items:
+          $ref: '#/definitions/main.EvaluationCriterion'
+        type: array
+      overallStatus:
+        $ref: '#/definitions/main.EvaluationStatus'
+    type: object
+  main.EvaluationStatus:
+    enum:
+    - PASS
+    - WARN
+    - FAIL
+    type: string
+    x-enum-varnames:
+    - StatusPass
+    - StatusWarn
+    - StatusFail
+info:
+  contact: {}
+  description: SMTP (:2525) & HTTP (:8081) Email Sanndbox with Static HTML Visibility
+    Matrix and Attachment Threat Scanner.
+  title: Email Sanndbox API
+  version: 1.0.0
+paths:
+  /:
+    get:
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: HTML Dashboard
+          schema:
+            type: string
+      summary: Render Email Sanndbox Dashboard
+  /api/v1/emails:
+    get:
+      parameters:
+      - description: Browser Tab Session ID
+        in: query
+        name: sessionId
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/main.EmailRecord'
+            type: array
+      summary: List evaluated emails
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Email Submission Payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/main.EmailSubmissionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/main.EmailRecord'
+      summary: Submit email for evaluation
+  /api/v1/emails/clear:
+    post:
+      parameters:
+      - description: Browser Tab Session ID
+        in: query
+        name: sessionId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: Cleared
+          schema:
+            type: string
+      summary: Clear session-scoped email cache
+  /docs:
+    get:
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: Swagger UI HTML
+          schema:
+            type: string
+      summary: Interactive OpenAPI 3.0 Documentation
+  /events:
+    get:
+      parameters:
+      - description: Browser Tab Session ID
+        in: query
+        name: sessionId
+        type: string
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: SSE Stream
+          schema:
+            type: string
+      summary: Real-time HTMX SSE stream
+swagger: "2.0"

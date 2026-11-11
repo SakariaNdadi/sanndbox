@@ -1,0 +1,276 @@
+{
+	"swagger": "2.0",
+	"info": {
+		"description": "HTTP (:9084) Telegram Sanndbox evaluating official core.telegram.org/methods (messages.sendMessage, messages.sendMedia, messages.sendMultiMedia, messages.forwardMessages, messages.editMessage, messages.deleteMessages, messages.sendReaction, messages.sendVote, messages.getHistory, channels.readHistory).",
+		"title": "Telegram MTProto \u0026 Bot API Sanndbox",
+		"contact": {},
+		"version": "1.0.0"
+	},
+	"basePath": "/",
+	"paths": {
+		"/": {
+			"get": {
+				"produces": ["text/html"],
+				"summary": "Render Telegram Desktop Sanndbox UI",
+				"responses": {
+					"200": {
+						"description": "HTML Dashboard",
+						"schema": {
+							"type": "string"
+						}
+					}
+				}
+			}
+		},
+		"/api/v1/telegram": {
+			"get": {
+				"produces": ["application/json"],
+				"summary": "List evaluated Telegram method records",
+				"parameters": [
+					{
+						"type": "string",
+						"description": "Browser Tab Session ID",
+						"name": "sessionId",
+						"in": "query"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "OK",
+						"schema": {
+							"type": "array",
+							"items": {
+								"$ref": "#/definitions/main.TelegramRecord"
+							}
+						}
+					}
+				}
+			},
+			"post": {
+				"consumes": ["application/json"],
+				"produces": ["application/json"],
+				"summary": "Invoke a Telegram MTProto method (core.telegram.org/methods)",
+				"parameters": [
+					{
+						"description": "Telegram Method Invocation Payload",
+						"name": "payload",
+						"in": "body",
+						"required": true,
+						"schema": {
+							"$ref": "#/definitions/main.TelegramMethodRequest"
+						}
+					}
+				],
+				"responses": {
+					"201": {
+						"description": "Created",
+						"schema": {
+							"$ref": "#/definitions/main.TelegramRecord"
+						}
+					}
+				}
+			}
+		},
+		"/api/v1/telegram/clear": {
+			"post": {
+				"summary": "Clear session-scoped Telegram cache",
+				"parameters": [
+					{
+						"type": "string",
+						"description": "Browser Tab Session ID",
+						"name": "sessionId",
+						"in": "query",
+						"required": true
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "Cleared",
+						"schema": {
+							"type": "string"
+						}
+					}
+				}
+			}
+		},
+		"/docs": {
+			"get": {
+				"produces": ["text/html"],
+				"summary": "Interactive OpenAPI 3.0 Documentation",
+				"responses": {
+					"200": {
+						"description": "Swagger UI HTML",
+						"schema": {
+							"type": "string"
+						}
+					}
+				}
+			}
+		},
+		"/events": {
+			"get": {
+				"produces": ["text/event-stream"],
+				"summary": "Real-time HTMX SSE stream",
+				"parameters": [
+					{
+						"type": "string",
+						"description": "Browser Tab Session ID",
+						"name": "sessionId",
+						"in": "query"
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "SSE Stream",
+						"schema": {
+							"type": "string"
+						}
+					}
+				}
+			}
+		}
+	},
+	"definitions": {
+		"main.EvaluationCriterion": {
+			"type": "object",
+			"properties": {
+				"category": {
+					"type": "string"
+				},
+				"details": {
+					"type": "string"
+				},
+				"status": {
+					"$ref": "#/definitions/main.EvaluationStatus"
+				},
+				"target": {
+					"type": "string"
+				}
+			}
+		},
+		"main.EvaluationStatus": {
+			"type": "string",
+			"enum": ["PASS", "WARN", "FAIL"],
+			"x-enum-varnames": ["StatusPass", "StatusWarn", "StatusFail"]
+		},
+		"main.TelegramEvaluationReport": {
+			"type": "object",
+			"properties": {
+				"characterCount": {
+					"type": "integer"
+				},
+				"criteria": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/main.EvaluationCriterion"
+					}
+				},
+				"method": {
+					"type": "string"
+				},
+				"overallStatus": {
+					"$ref": "#/definitions/main.EvaluationStatus"
+				},
+				"tlReturnType": {
+					"type": "string"
+				}
+			}
+		},
+		"main.TelegramMediaDescriptor": {
+			"type": "object",
+			"properties": {
+				"filename": {
+					"type": "string"
+				},
+				"mimeType": {
+					"type": "string"
+				},
+				"previewUrl": {
+					"type": "string"
+				},
+				"sizeBytes": {
+					"type": "integer"
+				},
+				"tlType": {
+					"type": "string"
+				}
+			}
+		},
+		"main.TelegramMethodRequest": {
+			"type": "object",
+			"properties": {
+				"media": {
+					"$ref": "#/definitions/main.TelegramMediaDescriptor"
+				},
+				"message": {
+					"type": "string"
+				},
+				"messageId": {
+					"type": "integer"
+				},
+				"method": {
+					"type": "string"
+				},
+				"peer": {
+					"type": "string"
+				},
+				"randomId": {
+					"type": "integer"
+				},
+				"reaction": {
+					"type": "string"
+				},
+				"sender": {
+					"type": "string"
+				},
+				"sessionId": {
+					"type": "string"
+				}
+			}
+		},
+		"main.TelegramRecord": {
+			"type": "object",
+			"properties": {
+				"id": {
+					"type": "string"
+				},
+				"media": {
+					"$ref": "#/definitions/main.TelegramMediaDescriptor"
+				},
+				"message": {
+					"type": "string"
+				},
+				"messageId": {
+					"type": "integer"
+				},
+				"method": {
+					"type": "string"
+				},
+				"peer": {
+					"type": "string"
+				},
+				"randomId": {
+					"type": "integer"
+				},
+				"reaction": {
+					"type": "string"
+				},
+				"report": {
+					"$ref": "#/definitions/main.TelegramEvaluationReport"
+				},
+				"sender": {
+					"type": "string"
+				},
+				"sessionId": {
+					"type": "string"
+				},
+				"source": {
+					"type": "string"
+				},
+				"timestamp": {
+					"type": "string"
+				}
+			}
+		}
+	}
+}

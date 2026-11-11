@@ -1,0 +1,195 @@
+basePath: /
+definitions:
+  main.EvaluationCriterion:
+    properties:
+      category:
+        type: string
+      details:
+        type: string
+      status:
+        $ref: '#/definitions/main.EvaluationStatus'
+      target:
+        type: string
+    type: object
+  main.EvaluationStatus:
+    enum:
+    - PASS
+    - WARN
+    - FAIL
+    type: string
+    x-enum-varnames:
+    - StatusPass
+    - StatusWarn
+    - StatusFail
+  main.TelegramEvaluationReport:
+    properties:
+      characterCount:
+        type: integer
+      criteria:
+        items:
+          $ref: '#/definitions/main.EvaluationCriterion'
+        type: array
+      method:
+        type: string
+      overallStatus:
+        $ref: '#/definitions/main.EvaluationStatus'
+      tlReturnType:
+        type: string
+    type: object
+  main.TelegramMediaDescriptor:
+    properties:
+      filename:
+        type: string
+      mimeType:
+        type: string
+      previewUrl:
+        type: string
+      sizeBytes:
+        type: integer
+      tlType:
+        type: string
+    type: object
+  main.TelegramMethodRequest:
+    properties:
+      media:
+        $ref: '#/definitions/main.TelegramMediaDescriptor'
+      message:
+        type: string
+      messageId:
+        type: integer
+      method:
+        type: string
+      peer:
+        type: string
+      randomId:
+        type: integer
+      reaction:
+        type: string
+      sender:
+        type: string
+      sessionId:
+        type: string
+    type: object
+  main.TelegramRecord:
+    properties:
+      id:
+        type: string
+      media:
+        $ref: '#/definitions/main.TelegramMediaDescriptor'
+      message:
+        type: string
+      messageId:
+        type: integer
+      method:
+        type: string
+      peer:
+        type: string
+      randomId:
+        type: integer
+      reaction:
+        type: string
+      report:
+        $ref: '#/definitions/main.TelegramEvaluationReport'
+      sender:
+        type: string
+      sessionId:
+        type: string
+      source:
+        type: string
+      timestamp:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: HTTP (:9084) Telegram Sanndbox evaluating official core.telegram.org/methods
+    (messages.sendMessage, messages.sendMedia, messages.sendMultiMedia, messages.forwardMessages,
+    messages.editMessage, messages.deleteMessages, messages.sendReaction, messages.sendVote,
+    messages.getHistory, channels.readHistory).
+  title: Telegram MTProto & Bot API Sanndbox
+  version: 1.0.0
+paths:
+  /:
+    get:
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: HTML Dashboard
+          schema:
+            type: string
+      summary: Render Telegram Desktop Sanndbox UI
+  /api/v1/telegram:
+    get:
+      parameters:
+      - description: Browser Tab Session ID
+        in: query
+        name: sessionId
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/main.TelegramRecord'
+            type: array
+      summary: List evaluated Telegram method records
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Telegram Method Invocation Payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/main.TelegramMethodRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/main.TelegramRecord'
+      summary: Invoke a Telegram MTProto method (core.telegram.org/methods)
+  /api/v1/telegram/clear:
+    post:
+      parameters:
+      - description: Browser Tab Session ID
+        in: query
+        name: sessionId
+        required: true
+        type: string
+      responses:
+        "204":
+          description: Cleared
+          schema:
+            type: string
+      summary: Clear session-scoped Telegram cache
+  /docs:
+    get:
+      produces:
+      - text/html
+      responses:
+        "200":
+          description: Swagger UI HTML
+          schema:
+            type: string
+      summary: Interactive OpenAPI 3.0 Documentation
+  /events:
+    get:
+      parameters:
+      - description: Browser Tab Session ID
+        in: query
+        name: sessionId
+        type: string
+      produces:
+      - text/event-stream
+      responses:
+        "200":
+          description: SSE Stream
+          schema:
+            type: string
+      summary: Real-time HTMX SSE stream
+swagger: "2.0"

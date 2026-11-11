@@ -1,0 +1,12 @@
+.git
+.gitignore
+.env
+.env.*
+.idea/
+.vscode/
+*.md
+docker-compose.yml
+Dockerfile
+bin/
+*.test
+graphify-out/

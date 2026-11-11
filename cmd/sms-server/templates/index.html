@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phone SMS Sanndbox | Mobile Messages UI (:9082)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class' };
+    </script>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/sse.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+
+        body,
+        html {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+</head>
+
+<body
+    class="min-h-screen flex flex-col bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 font-sans antialiased"
+    x-data="phoneSMSApp()" x-init="initApp()">
+
+    <header
+        class="h-14 shrink-0 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 flex items-center justify-between gap-4 sticky top-0 z-20">
+        <div class="flex items-center gap-3">
+            <button @click="showLauncher = true"
+                class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center gap-1.5 border border-slate-200 dark:border-slate-700 text-xs font-semibold">
+                <span>&#9776;</span>
+                <span>Server Hub</span>
+            </button>
+            <div class="flex items-center gap-2">
+                <div
+                    class="h-8 w-8 rounded-lg bg-sky-500 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+                    &#128241;</div>
+                <div>
+                    <span class="font-bold text-sm tracking-tight">iMessage / SMS Phone Sanndbox</span>
+                    <span
+                        class="ml-2 text-[11px] font-mono px-2 py-0.5 rounded bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/30">HTTP
+                        :9082</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button @click="showIntegrationModal = true"
+                class="text-xs font-medium px-2.5 py-1.5 rounded-lg border border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300 hover:bg-sky-500/20 transition">
+                External SMS API Guide
+            </button>
+            <a href="/docs" target="_blank"
+                class="text-xs font-medium px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                /docs &nearr;
+            </a>
+            <div
+                class="inline-flex rounded-lg p-0.5 bg-slate-200/80 dark:bg-slate-800 border border-slate-300/80 dark:border-slate-700 text-xs">
+                <button @click="setTheme('system')"
+                    :class="themeMode === 'system' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm font-semibold' : 'text-slate-600 dark:text-slate-400'"
+                    class="px-2 py-1 rounded-md">System</button>
+                <button @click="setTheme('light')"
+                    :class="themeMode === 'light' ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-600 dark:text-slate-400'"
+                    class="px-2 py-1 rounded-md">Light</button>
+                <button @click="setTheme('dark')"
+                    :class="themeMode === 'dark' ? 'bg-slate-900 text-white shadow-sm font-semibold' : 'text-slate-600 dark:text-slate-400'"
+                    class="px-2 py-1 rounded-md">Dark</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl w-full mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <section class="lg:col-span-5 flex justify-center">
+            <div class="w-[370px] bg-slate-900 rounded-[48px] p-3.5 shadow-2xl border-4 border-slate-800 relative">
+                <div class="w-28 h-5 bg-black rounded-full mx-auto mb-2 flex items-center justify-center">
+                    <div class="w-2.5 h-2.5 rounded-full bg-slate-800 mr-4"></div>
+                </div>
+
+                <div
+                    class="bg-white dark:bg-slate-950 rounded-[36px] h-[660px] flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800">
+                    <div
+                        class="px-6 pt-2 pb-1 flex items-center justify-between text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                        <span x-text="currentTime()"></span>
+                        <div class="flex items-center gap-1.5">
+                            <span>5G</span>
+                            <span>&#128267; 100%</span>
+                        </div>
+                    </div>
+
+                    <div
+                        class="px-4 py-2.5 bg-slate-100/90 dark:bg-slate-900/90 backdrop-blur border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                        <div class="flex items-center gap-2.5">
+                            <div class="h-9 w-9 rounded-full bg-gradient-to-br from-sky-400 to-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-sm"
+                                x-text="sender.slice(0,2).toUpperCase()"></div>
+                            <div>
+                                <div class="text-xs font-bold leading-tight" x-text="sender"></div>
+                                <div class="text-[10px] font-mono text-slate-500 dark:text-slate-400"
+                                    x-text="'To: ' + recipient"></div>
+                            </div>
+                        </div>
+                        <button @click="clearTabCache()" title="Clear Conversation"
+                            class="text-[11px] text-rose-500 hover:underline font-medium">Clear</button>
+                    </div>
+
+                    <div id="phone-messages-scroll"
+                        class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50 dark:bg-slate-950">
+                        <div class="text-center">
+                            <span
+                                class="text-[10px] bg-slate-200/80 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2.5 py-1 rounded-full">
+                                SMS / MMS Carrier PDU Stream &bull; Tap bubble to inspect matrix
+                            </span>
+                        </div>
+
+                        <template x-for="sms in messages" :key="sms.id">
+                            <div @click="selectedSMSId = sms.id" class="flex flex-col items-end group cursor-pointer">
+                                <div class="max-w-[85%] rounded-2xl rounded-br-sm px-3.5 py-2.5 text-xs shadow-sm transition transform group-hover:scale-[1.01]"
+                                    :class="selectedSMSId === sms.id ? 'bg-sky-600 text-white ring-2 ring-offset-2 ring-sky-500 dark:ring-offset-slate-950' : 'bg-sky-500 text-white'">
+                                    <p class="whitespace-pre-wrap break-words leading-relaxed" x-text="sms.message"></p>
+                                </div>
+                                <div
+                                    class="mt-1 flex items-center gap-1.5 text-[10px] font-mono text-slate-500 dark:text-slate-400">
+                                    <span x-text="sms.report.encoding"></span>
+                                    <span>&bull;</span>
+                                    <span
+                                        x-text="sms.report.segmentCount + ' seg (' + sms.report.totalUnits + 'u)'"></span>
+                                    <span>&bull;</span>
+                                    <span class="font-bold px-1.5 py-0.2 rounded" :class="{
+                                              'text-emerald-600 dark:text-emerald-400': sms.report.overallStatus === 'PASS',
+                                              'text-amber-600 dark:text-amber-400': sms.report.overallStatus === 'WARN',
+                                              'text-rose-600 dark:text-rose-400': sms.report.overallStatus === 'FAIL'
+                                          }" x-text="sms.report.overallStatus"></span>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <form @submit.prevent="submitSMS()"
+                        class="p-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center gap-2">
+                        <input type="text" x-model="message" @input="persistDraft()"
+                            placeholder="iMessage / SMS text..." required
+                            class="flex-1 bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-full px-4 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500">
+                        <button type="submit"
+                            class="h-8 w-8 rounded-full bg-sky-500 hover:bg-sky-400 text-white flex items-center justify-center font-bold text-xs shadow transition">
+                            &uarr;
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <section class="lg:col-span-7 space-y-6">
+            <div
+                class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-sm font-bold">SMS PDU Composer &amp; Preset Simulator</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Test GSM 03.38 7-bit septet packing vs
+                            UCS-2 16-bit emoji/Unicode fallback</p>
+                    </div>
+                    <span class="text-xs font-mono text-slate-400"
+                        x-text="'Tab Session: ' + sessionId.slice(0,8)"></span>
+                </div>
+
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" @click="sendPreset('gsm7_single')"
+                        class="text-xs bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 px-3 py-1.5 rounded-lg font-medium transition">+
+                        GSM-7 Single Segment (PASS)</button>
+                    <button type="button" @click="sendPreset('ucs2_multi')"
+                        class="text-xs bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 px-3 py-1.5 rounded-lg font-medium transition">+
+                        Emoji UCS-2 Multi-Segment (WARN)</button>
+                    <button type="button" @click="sendPreset('overflow')"
+                        class="text-xs bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/30 px-3 py-1.5 rounded-lg font-medium transition">+
+                        7-Segment Carrier Overflow (FAIL)</button>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                        <label class="block font-medium text-slate-500 mb-1">Sender ID / Shortcode</label>
+                        <input type="text" x-model="sender" @input="persistDraft()"
+                            class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-500 mb-1">Recipient E.164 Number</label>
+                        <input type="text" x-model="recipient" @input="persistDraft()"
+                            class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2">
+                    </div>
+                </div>
+            </div>
+
+            <template x-if="selectedSMS()">
+                <div
+                    class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                        <div>
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Selected Bubble PDU
+                                Inspection</span>
+                            <h3 class="text-sm font-bold font-mono mt-0.5"
+                                x-text="selectedSMS().sender + ' → ' + selectedSMS().recipient + ' (' + selectedSMS().source + ')'">
+                            </h3>
+                        </div>
+                        <span class="px-3 py-1 text-xs font-bold rounded-full border" :class="{
+                                  'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/40': selectedSMS().report.overallStatus === 'PASS',
+                                  'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40': selectedSMS().report.overallStatus === 'WARN',
+                                  'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/40': selectedSMS().report.overallStatus === 'FAIL'
+                              }" x-text="selectedSMS().report.overallStatus"></span>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-3 text-center">
+                        <div
+                            class="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                            <div class="text-[11px] text-slate-500">Encoding Alphabet</div>
+                            <div class="text-base font-bold font-mono text-sky-600 dark:text-sky-400"
+                                x-text="selectedSMS().report.encoding"></div>
+                        </div>
+                        <div
+                            class="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                            <div class="text-[11px] text-slate-500">PDU Segments</div>
+                            <div class="text-base font-bold font-mono" x-text="selectedSMS().report.segmentCount"></div>
+                        </div>
+                        <div
+                            class="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                            <div class="text-[11px] text-slate-500">Total Units / Frame Cap</div>
+                            <div class="text-base font-bold font-mono"
+                                x-text="selectedSMS().report.totalUnits + ' / ' + selectedSMS().report.perSegmentLimit">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <template x-for="(crit, idx) in selectedSMS().report.criteria" :key="idx">
+                            <div
+                                class="flex items-center justify-between bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3.5 py-2.5 text-xs">
+                                <div>
+                                    <span class="font-semibold text-slate-800 dark:text-slate-200"
+                                        x-text="'[' + crit.category + '] ' + crit.target + ':'"></span>
+                                    <span class="text-slate-600 dark:text-slate-400 ml-1" x-text="crit.details"></span>
+                                </div>
+                                <span class="px-2 py-0.5 rounded font-bold text-[11px] border shrink-0 ml-2" :class="{
+                                          'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30': crit.status === 'PASS',
+                                          'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30': crit.status === 'WARN',
+                                          'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30': crit.status === 'FAIL'
+                                      }" x-text="crit.status"></span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </template>
+        </section>
+    </main>
+
+    <div class="hidden" hx-ext="sse" sse-connect="/events" sse-swap="sms-evaluated"
+        @htmx:sse-message.camel="onSSEMessage()"></div>
+
+    <div x-show="showLauncher" x-cloak
+        class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4"
+        @keydown.escape.window="showLauncher = false">
+        <div @click.outside="showLauncher = false"
+            class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div>
+                    <h3 class="text-base font-bold">Choose Sanndbox Server</h3>
+                    <p class="text-xs text-slate-500">Switch between simulated communication channels or open the main
+                        portal (:9080)</p>
+                </div>
+                <button @click="showLauncher = false" class="text-xs font-bold text-slate-400">ESC &times;</button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                <a :href="serviceUrl(9081)"
+                    class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-emerald-500 space-y-2">
+                    <div class="text-xl">&#9993;</div>
+                    <div class="font-bold text-sm">Email Webmail</div>
+                    <div class="font-mono text-[11px] text-emerald-600 dark:text-emerald-400">:9081 &bull; SMTP :2525
+                    </div>
+                </a>
+                <a :href="serviceUrl(9082)" class="p-4 rounded-xl border-2 border-sky-500 bg-sky-500/5 space-y-2">
+                    <div class="text-xl">&#128241;</div>
+                    <div class="font-bold text-sm">Phone SMS App</div>
+                    <div class="font-mono text-[11px] text-sky-600 dark:text-sky-400">HTTP :9082</div>
+                </a>
+                <a :href="serviceUrl(9083)"
+                    class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-emerald-600 space-y-2">
+                    <div class="text-xl">&#128172;</div>
+                    <div class="font-bold text-sm">WhatsApp Business</div>
+                    <div class="font-mono text-[11px] text-emerald-600 dark:text-emerald-400">HTTP :9083</div>
+                </a>
+                <a :href="serviceUrl(9084)"
+                    class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-sky-500 space-y-2">
+                    <div class="text-xl">&#9992;</div>
+                    <div class="font-bold text-sm">Telegram Desktop</div>
+                    <div class="font-mono text-[11px] text-sky-600 dark:text-sky-400">HTTP :9084</div>
+                </a>
+            </div>
+            <div class="pt-2 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center text-xs">
+                <a :href="serviceUrl(9080)"
+                    class="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">&larr; Open Full Landing
+                    Hub (:9080)</a>
+                <button @click="showLauncher = false"
+                    class="px-3 py-1 rounded bg-slate-100 dark:bg-slate-800">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div x-show="showIntegrationModal" x-cloak
+        class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4"
+        @keydown.escape.window="showIntegrationModal = false">
+        <div @click.outside="showIntegrationModal = false"
+            class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 text-xs">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <h3 class="text-sm font-bold">External SMS Producer Integration (HTTP :9082)</h3>
+                <button @click="showIntegrationModal = false" class="text-slate-400 font-bold">ESC &times;</button>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="text-slate-500">Run in terminal to push an SMS directly to this phone screen:</span>
+                <button
+                    @click="navigator.clipboard.writeText(curlExample); copied = true; setTimeout(() => copied = false, 2000)"
+                    class="px-3 py-1 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-semibold transition">
+                    <span x-text="copied ? 'Copied!' : 'Copy cURL Command'"></span>
+                </button>
+            </div>
+            <pre class="bg-slate-950 text-slate-100 p-3.5 rounded-lg font-mono overflow-x-auto select-all"
+                x-text="curlExample"></pre>
+        </div>
+    </div>
+
+    <script>
+        function phoneSMSApp() {
+            return {
+                themeMode: 'system',
+                sessionId: '',
+                showLauncher: false,
+                showIntegrationModal: false,
+                copied: false,
+                curlExample: `curl -X POST http://localhost:9082/api/v1/sms -H "Content-Type: application/json" -d '{"sender":"AUTH-OTP","recipient":"+358401234567","message":"Your verification code is 948201. Cost: 5 EUR."}'`,
+                sender: 'Sanndbox-OTP',
+                recipient: '+358401234567',
+                message: 'Your verification code is 948201. Valid for 5 minutes.',
+                messages: [],
+                selectedSMSId: null,
+
+                initApp() {
+                    let s = sessionStorage.getItem('sms_Sanndbox_session_id');
+                    if (!s) {
+                        s = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2);
+                        sessionStorage.setItem('sms_Sanndbox_session_id', s);
+                    }
+                    this.sessionId = s;
+
+                    const savedTheme = sessionStorage.getItem('Sanndbox_theme_mode') || 'system';
+                    this.setTheme(savedTheme);
+                    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+                        if (this.themeMode === 'system') this.applyThemeClass('system');
+                    });
+
+                    const savedList = sessionStorage.getItem('sms_Sanndbox_items');
+                    if (savedList) {
+                        try {
+                            this.messages = JSON.parse(savedList);
+                            if (this.messages.length > 0) this.selectedSMSId = this.messages[this.messages.length - 1].id;
+                        } catch (_) { }
+                    } else {
+                        this.sendPreset('gsm7_single');
+                    }
+
+                    const sse = new EventSource('/events?sessionId=' + encodeURIComponent(this.sessionId));
+                    sse.addEventListener('sms-evaluated', (event) => {
+                        try {
+                            const incoming = JSON.parse(event.data);
+                            if (incoming && incoming.id && !this.messages.some(m => m.id === incoming.id)) {
+                                this.messages.push(incoming);
+                                this.selectedSMSId = incoming.id;
+                                this.persistMessages();
+                                this.scrollToBottom();
+                            }
+                        } catch (_) { }
+                    });
+
+                    window.addEventListener('pagehide', (e) => {
+                        if (!e.persisted) {
+                            sse.close();
+                            navigator.sendBeacon('/api/v1/sms/clear?sessionId=' + encodeURIComponent(this.sessionId));
+                        }
+                    });
+                },
+
+                serviceUrl(port) {
+                    return window.location.protocol + '//' + window.location.hostname + ':' + port;
+                },
+
+                currentTime() {
+                    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                },
+
+                setTheme(mode) {
+                    this.themeMode = mode;
+                    sessionStorage.setItem('Sanndbox_theme_mode', mode);
+                    this.applyThemeClass(mode);
+                },
+
+                applyThemeClass(mode) {
+                    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    const isDark = mode === 'dark' || (mode === 'system' && prefersDark);
+                    document.documentElement.classList.toggle('dark', isDark);
+                    document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+                },
+
+                selectedSMS() {
+                    return this.messages.find(m => m.id === this.selectedSMSId) || null;
+                },
+
+                persistMessages() {
+                    sessionStorage.setItem('sms_Sanndbox_items', JSON.stringify(this.messages.slice(-50)));
+                },
+
+                persistDraft() {
+                    sessionStorage.setItem('sms_Sanndbox_draft', JSON.stringify({
+                        sender: this.sender,
+                        recipient: this.recipient,
+                        message: this.message
+                    }));
+                },
+
+                scrollToBottom() {
+                    setTimeout(() => {
+                        const el = document.getElementById('phone-messages-scroll');
+                        if (el) el.scrollTop = el.scrollHeight;
+                    }, 50);
+                },
+
+                async onSSEMessage() {
+                    const res = await fetch('/api/v1/sms?sessionId=' + encodeURIComponent(this.sessionId));
+                    if (res.ok) {
+                        const list = await res.json();
+                        if (Array.isArray(list) && list.length > 0) {
+                            const latest = list[0];
+                            if (!this.messages.some(m => m.id === latest.id)) {
+                                this.messages.push(latest);
+                                this.selectedSMSId = latest.id;
+                                this.persistMessages();
+                                this.scrollToBottom();
+                            }
+                        }
+                    }
+                },
+
+                clearTabCache() {
+                    this.messages = [];
+                    this.selectedSMSId = null;
+                    sessionStorage.removeItem('sms_Sanndbox_items');
+                    sessionStorage.removeItem('sms_Sanndbox_draft');
+                    fetch('/api/v1/sms/clear?sessionId=' + encodeURIComponent(this.sessionId), { method: 'POST' });
+                },
+
+                async sendPreset(type) {
+                    if (type === 'gsm7_single') {
+                        this.message = 'Your verification code is 948201. Cost: 5 EUR.';
+                    } else if (type === 'ucs2_multi') {
+                        this.message = 'Hello 🚀! Unicode emojis force UCS-2 16-bit encoding, shrinking segment capacity from 160 septets down to 67 UTF-16 code units per frame.';
+                    } else if (type === 'overflow') {
+                        this.message = '🚀 '.repeat(230);
+                    }
+                    await this.submitSMS();
+                },
+
+                async submitSMS() {
+                    if (!this.message.trim()) return;
+                    const res = await fetch('/api/v1/sms', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Sanndbox-Session': this.sessionId
+                        },
+                        body: JSON.stringify({
+                            sessionId: this.sessionId,
+                            sender: this.sender,
+                            recipient: this.recipient,
+                            message: this.message
+                        })
+                    });
+                    if (res.ok) {
+                        const created = await res.json();
+                        if (!this.messages.some(m => m.id === created.id)) {
+                            this.messages.push(created);
+                            this.selectedSMSId = created.id;
+                            this.persistMessages();
+                            this.scrollToBottom();
+                        }
+                    }
+                }
+            };
+        }
+    </script>
+</body>
+
+</html>
+
+{{define "sms_card"}}
+<div>{{.ID}}</div>
+{{end}}

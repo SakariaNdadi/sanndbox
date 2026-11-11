@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sanndbox Mail | Webmail Inbox (:9081 &amp; SMTP :2525)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class' };
+    </script>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/sse.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+
+        body,
+        html {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+</head>
+
+<body
+    class="h-screen overflow-hidden flex flex-col bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 font-sans antialiased"
+    x-data="webmailClient()" x-init="initApp()">
+
+    <header
+        class="h-14 shrink-0 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 flex items-center justify-between gap-4 z-20">
+        <div class="flex items-center gap-3">
+            <button @click="showLauncher = true" title="Switch Sanndbox Server"
+                class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center gap-1.5 border border-slate-200 dark:border-slate-700 text-xs font-semibold">
+                <span>&#9776;</span>
+                <span class="hidden sm:inline">Server Hub</span>
+            </button>
+            <div class="flex items-center gap-2">
+                <div
+                    class="h-8 w-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+                    &#9993;</div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold text-sm tracking-tight">SanndboxMail</span>
+                        <span
+                            class="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">HTTP
+                            :9081 &bull; SMTP :2525</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-1 max-w-md hidden md:block">
+            <input type="search" x-model="searchQuery"
+                placeholder="Search inbox by subject, sender, or status (PASS/WARN/FAIL)..."
+                class="w-full bg-slate-100 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 rounded-lg px-3.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        </div>
+
+        <div class="flex items-center gap-2">
+            <button @click="showIntegrationModal = true"
+                class="text-xs font-medium px-2.5 py-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-500/20 transition">
+                SMTP / API Guide
+            </button>
+            <a href="/docs" target="_blank"
+                class="text-xs font-medium px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                /docs &nearr;
+            </a>
+            <div
+                class="inline-flex rounded-lg p-0.5 bg-slate-200/80 dark:bg-slate-800 border border-slate-300/80 dark:border-slate-700 text-xs">
+                <button @click="setTheme('system')"
+                    :class="themeMode === 'system' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm font-semibold' : 'text-slate-600 dark:text-slate-400'"
+                    class="px-2 py-1 rounded-md">System</button>
+                <button @click="setTheme('light')"
+                    :class="themeMode === 'light' ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-600 dark:text-slate-400'"
+                    class="px-2 py-1 rounded-md">Light</button>
+                <button @click="setTheme('dark')"
+                    :class="themeMode === 'dark' ? 'bg-slate-900 text-white shadow-sm font-semibold' : 'text-slate-600 dark:text-slate-400'"
+                    class="px-2 py-1 rounded-md">Dark</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex-1 flex overflow-hidden">
+        <aside
+            class="w-56 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 flex flex-col justify-between">
+            <div class="space-y-4">
+                <button @click="showComposeModal = true"
+                    class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 px-4 rounded-xl text-xs shadow flex items-center justify-center gap-2 transition">
+                    <span>&#9998;</span>
+                    <span>Compose / Simulate</span>
+                </button>
+
+                <nav class="space-y-1 text-xs">
+                    <button @click="activeFolder = 'ALL'"
+                        :class="activeFolder === 'ALL' ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-semibold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'"
+                        class="w-full flex items-center justify-between px-3 py-2 rounded-lg transition">
+                        <span>&#128229; All Inbox</span>
+                        <span class="font-mono text-[11px]" x-text="emails.length"></span>
+                    </button>
+                    <button @click="activeFolder = 'PASS'"
+                        :class="activeFolder === 'PASS' ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-semibold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'"
+                        class="w-full flex items-center justify-between px-3 py-2 rounded-lg transition">
+                        <span>&#9989; Verified (PASS)</span>
+                        <span class="font-mono text-[11px]"
+                            x-text="emails.filter(e => e.report.overallStatus === 'PASS').length"></span>
+                    </button>
+                    <button @click="activeFolder = 'WARN'"
+                        :class="activeFolder === 'WARN' ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 font-semibold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'"
+                        class="w-full flex items-center justify-between px-3 py-2 rounded-lg transition">
+                        <span>&#9888; Rendering Warnings</span>
+                        <span class="font-mono text-[11px]"
+                            x-text="emails.filter(e => e.report.overallStatus === 'WARN').length"></span>
+                    </button>
+                    <button @click="activeFolder = 'FAIL'"
+                        :class="activeFolder === 'FAIL' ? 'bg-rose-500/10 text-rose-700 dark:text-rose-300 font-semibold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'"
+                        class="w-full flex items-center justify-between px-3 py-2 rounded-lg transition">
+                        <span>&#128721; Threat Quarantine</span>
+                        <span class="font-mono text-[11px]"
+                            x-text="emails.filter(e => e.report.overallStatus === 'FAIL').length"></span>
+                    </button>
+                </nav>
+
+                <div class="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-1.5">
+                    <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-2">Quick Test Presets
+                    </div>
+                    <button @click="dispatchPreset('clean')"
+                        class="w-full text-left text-xs px-2.5 py-1.5 rounded-lg hover:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 transition">+
+                        Send Clean Order Email</button>
+                    <button @click="dispatchPreset('outlook_warn')"
+                        class="w-full text-left text-xs px-2.5 py-1.5 rounded-lg hover:bg-amber-500/10 text-amber-700 dark:text-amber-300 transition">+
+                        Send Flexbox Warning</button>
+                    <button @click="dispatchPreset('malicious')"
+                        class="w-full text-left text-xs px-2.5 py-1.5 rounded-lg hover:bg-rose-500/10 text-rose-700 dark:text-rose-300 transition">+
+                        Send EICAR + XSS Exploit</button>
+                </div>
+            </div>
+
+            <div
+                class="border-t border-slate-200 dark:border-slate-800 pt-3 space-y-2 text-[11px] text-slate-500 dark:text-slate-400">
+                <div class="flex items-center justify-between">
+                    <span class="flex items-center gap-1.5"><span
+                            class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span> SSE Live</span>
+                    <span class="font-mono" x-text="sessionId.slice(0,8)"></span>
+                </div>
+                <button @click="clearTabCache()"
+                    class="w-full text-left text-rose-600 dark:text-rose-400 hover:underline font-medium">Empty Tab
+                    Inbox Cache</button>
+            </div>
+        </aside>
+
+        <section
+            class="w-80 md:w-96 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/50 flex flex-col overflow-hidden">
+            <div
+                class="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400">
+                <span x-text="activeFolder + ' MESSAGES (' + filteredEmails().length + ')'"></span>
+                <span class="font-mono text-[11px]">Tab Cached</span>
+            </div>
+
+            <div class="flex-1 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-800">
+                <template x-if="filteredEmails().length === 0">
+                    <div class="p-8 text-center text-xs text-slate-400 space-y-2">
+                        <div class="text-2xl">&#128235;</div>
+                        <div>Inbox is empty for this filter.</div>
+                        <div>Click a Quick Test Preset on the left or send via SMTP :2525.</div>
+                    </div>
+                </template>
+
+                <template x-for="item in filteredEmails()" :key="item.id">
+                    <div @click="selectedEmailId = item.id"
+                        :class="selectedEmailId === item.id ? 'bg-emerald-500/10 dark:bg-emerald-500/15 border-l-4 border-l-emerald-500' : 'hover:bg-white dark:hover:bg-slate-900'"
+                        class="p-3.5 cursor-pointer transition space-y-1.5">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="font-semibold text-xs truncate" x-text="item.sender"></span>
+                            <span class="text-[10px] font-mono text-slate-400 shrink-0"
+                                x-text="formatTime(item.timestamp)"></span>
+                        </div>
+                        <div class="text-xs font-bold text-slate-900 dark:text-slate-100 truncate"
+                            x-text="item.subject || '(No Subject)'"></div>
+                        <div class="flex items-center justify-between gap-2 pt-1">
+                            <div class="flex items-center gap-1.5">
+                                <span
+                                    class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                                    x-text="item.source"></span>
+                                <template x-if="item.attachments && item.attachments.length > 0">
+                                    <span
+                                        class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                                        x-text="'📎 ' + item.attachments.length"></span>
+                                </template>
+                            </div>
+                            <span class="px-2 py-0.5 text-[10px] font-bold rounded-full border" :class="{
+                                      'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/40': item.report.overallStatus === 'PASS',
+                                      'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40': item.report.overallStatus === 'WARN',
+                                      'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/40': item.report.overallStatus === 'FAIL'
+                                  }" x-text="item.report.overallStatus"></span>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </section>
+
+        <main class="flex-1 bg-white dark:bg-slate-950 flex flex-col overflow-y-auto">
+            <template x-if="!selectedEmail()">
+                <div class="m-auto text-center p-8 space-y-3 text-slate-400">
+                    <div class="text-4xl">&#9993;</div>
+                    <h2 class="text-sm font-semibold text-slate-600 dark:text-slate-300">Select an email from the inbox
+                        to inspect</h2>
+                    <p class="text-xs max-w-sm">View rendered HTML client output alongside the Static HTML Visibility
+                        Matrix and Attachment Threat Scanner.</p>
+                </div>
+            </template>
+
+            <template x-if="selectedEmail()">
+                <div class="p-6 space-y-4">
+                    <!-- Webmail Message Header -->
+                    <div
+                        class="border-b border-slate-200 dark:border-slate-800 pb-4 flex flex-wrap items-start justify-between gap-4">
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-2.5 flex-wrap">
+                                <h2 class="text-xl font-bold text-slate-900 dark:text-white"
+                                    x-text="selectedEmail().subject"></h2>
+                                <span
+                                    class="px-2 py-0.5 text-[11px] font-semibold rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">Inbox</span>
+                            </div>
+                            <div class="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+                                <div class="h-9 w-9 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold uppercase text-xs shadow-sm"
+                                    x-text="selectedEmail().sender.slice(0,2)"></div>
+                                <div>
+                                    <div class="text-slate-900 dark:text-slate-100 font-semibold"
+                                        x-text="selectedEmail().sender"></div>
+                                    <div class="text-[11px]">to <span class="text-slate-700 dark:text-slate-300"
+                                            x-text="(selectedEmail().recipients || []).join(', ')"></span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-end gap-1.5">
+                            <div class="text-xs text-slate-500 dark:text-slate-400"
+                                x-text="formatTime(selectedEmail().timestamp)"></div>
+                            <div class="flex items-center gap-1.5">
+                                <!-- Compact 1-Line Diagnostics Toggle Pill -->
+                                <button @click="matrixExpanded = !matrixExpanded"
+                                    class="px-2.5 py-1 rounded-full text-xs font-semibold border flex items-center gap-1.5 transition"
+                                    :class="{
+                                            'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/50 dark:border-emerald-800 dark:text-emerald-300': selectedEmail().report.overallStatus === 'PASS',
+                                            'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-950/50 dark:border-amber-800 dark:text-amber-300': selectedEmail().report.overallStatus === 'WARN',
+                                            'bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-950/50 dark:border-rose-800 dark:text-rose-300': selectedEmail().report.overallStatus === 'FAIL'
+                                        }">
+                                    <span
+                                        x-text="selectedEmail().report.overallStatus === 'PASS' ? '✓ Verified' : (selectedEmail().report.overallStatus === 'WARN' ? '⚠ Warning' : '✕ Quarantined')"></span>
+                                    <span>•</span>
+                                    <span x-text="selectedEmail().report.criteria.length + ' checks'"></span>
+                                    <span class="underline ml-1" x-text="matrixExpanded ? 'Hide' : 'Inspect'"></span>
+                                </button>
+                                <button @click="previewMode = previewMode === 'rendered' ? 'raw' : 'rendered'"
+                                    class="px-2.5 py-1 rounded-full text-xs font-medium border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                                    x-text="previewMode === 'rendered' ? 'View HTML Source' : 'View Rendered Email'"></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Collapsible Evaluation & Threat Matrix (Hidden by default so email looks like a real inbox) -->
+                    <div x-show="matrixExpanded" x-cloak
+                        class="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Client Rendering
+                                &amp; Threat Scanner Diagnostics</span>
+                            <span class="text-[11px] font-mono text-slate-400"
+                                x-text="selectedEmail().source + ' • ' + selectedEmail().htmlBody.length + ' bytes'"></span>
+                        </div>
+                        <div class="grid grid-cols-1 gap-1.5">
+                            <template x-for="(crit, idx) in selectedEmail().report.criteria" :key="idx">
+                                <div
+                                    class="flex items-center justify-between bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-1.5 text-xs">
+                                    <div>
+                                        <span class="font-semibold text-slate-800 dark:text-slate-200"
+                                            x-text="crit.category + ' (' + crit.target + '):'"></span>
+                                        <span class="text-slate-600 dark:text-slate-400 ml-1"
+                                            x-text="crit.details"></span>
+                                    </div>
+                                    <span class="px-2 py-0.5 rounded font-bold text-[10px] border shrink-0 ml-2" :class="{
+                                              'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30': crit.status === 'PASS',
+                                              'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30': crit.status === 'WARN',
+                                              'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30': crit.status === 'FAIL'
+                                          }" x-text="crit.status"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- THE ACTUAL RENDERED EMAIL BODY (Primary Focus) -->
+                    <div x-show="previewMode === 'rendered'"
+                        class="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-white shadow-sm">
+                        <iframe class="w-full h-[460px] border-0" sandbox=""
+                            :srcdoc="selectedEmail().htmlBody"></iframe>
+                    </div>
+                    <div x-show="previewMode === 'raw'" x-cloak
+                        class="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-950 p-4">
+                        <pre class="text-xs font-mono text-slate-200 overflow-x-auto whitespace-pre-wrap"
+                            x-text="selectedEmail().htmlBody"></pre>
+                    </div>
+
+                    <!-- Visual Email Attachments Row (With Real Image Thumbnails & PDF Cards) -->
+                    <template x-if="selectedEmail().attachments && selectedEmail().attachments.length > 0">
+                        <div class="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-2.5">
+                            <div class="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                                <span x-text="selectedEmail().attachments.length"></span> Attachment(s)
+                            </div>
+                            <div class="flex flex-wrap gap-3">
+                                <template x-for="(att, idx) in selectedEmail().attachments" :key="idx">
+                                    <div
+                                        class="w-56 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 overflow-hidden shadow-sm">
+                                        <!-- Render Image Preview if Image Attachment -->
+                                        <template x-if="att.contentType && att.contentType.startsWith('image/')">
+                                            <img :src="att.previewUrl || ('data:' + att.contentType + ';base64,' + att.base64Data)"
+                                                onerror="this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=400&q=80'"
+                                                class="w-full h-28 object-cover bg-slate-200">
+                                        </template>
+                                        <template x-if="!att.contentType || !att.contentType.startsWith('image/')">
+                                            <div
+                                                class="h-20 bg-rose-500/10 dark:bg-rose-950/40 flex items-center justify-center">
+                                                <span
+                                                    class="px-2.5 py-1 rounded bg-rose-600 text-white font-bold text-xs">PDF</span>
+                                            </div>
+                                        </template>
+                                        <div class="p-2.5 flex items-center justify-between gap-2">
+                                            <div class="min-w-0">
+                                                <div class="text-xs font-semibold truncate" x-text="att.filename"></div>
+                                                <div class="text-[10px] text-slate-400 truncate"
+                                                    x-text="att.contentType"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+        </main>
+    </div>
+
+    <div class="hidden" hx-ext="sse" sse-connect="/events" sse-swap="email-evaluated"
+        @htmx:sse-message.camel="onSSEMessage($event)"></div>
+
+    <div x-show="showComposeModal" x-cloak
+        class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4"
+        @keydown.escape.window="showComposeModal = false">
+        <div @click.outside="showComposeModal = false"
+            class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <h3 class="text-sm font-bold">New Message</h3>
+                <button @click="showComposeModal = false"
+                    class="text-xs text-slate-400 hover:text-slate-200 font-bold">ESC &times;</button>
+            </div>
+            <form @submit.prevent="submitEmail(); showComposeModal = false" class="space-y-3 text-xs">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-slate-500 mb-1">From</label>
+                        <input type="email" x-model="sender" @input="persistDraft()" required
+                            class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-500 mb-1">To (comma-separated)</label>
+                        <input type="text" x-model="recipientsRaw" @input="persistDraft()" required
+                            class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2">
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-500 mb-1">Subject</label>
+                    <input type="text" x-model="subject" @input="persistDraft()" required
+                        class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2">
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-500 mb-1">HTML Body</label>
+                    <textarea x-model="htmlBody" @input="persistDraft()" rows="5"
+                        class="w-full font-mono bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-lg px-3 py-2"></textarea>
+                </div>
+                <div class="border border-slate-200 dark:border-slate-800 rounded-lg p-3 space-y-2">
+                    <div class="flex items-center justify-between flex-wrap gap-2">
+                        <span class="font-medium text-slate-500">Attachments (<span
+                                x-text="attachments.length"></span>)</span>
+                        <div class="flex items-center gap-2.5">
+                            <input type="file" x-ref="emailFileInput" @change="handleFileUpload($event)"
+                                accept="image/*,.pdf" class="hidden">
+                            <button type="button" @click="$refs.emailFileInput.click()"
+                                class="px-2.5 py-1 rounded bg-emerald-600 text-white font-semibold">+ Upload Image /
+                                PDF</button>
+                            <button type="button" @click="addSamplePDF()"
+                                class="text-emerald-600 dark:text-emerald-400 font-semibold hover:underline">+ Sample
+                                PDF</button>
+                            <button type="button" @click="addSamplePNG()"
+                                class="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">+ Sample
+                                Image</button>
+                        </div>
+                    </div>
+                    <template x-for="(att, i) in attachments" :key="i">
+                        <div
+                            class="flex items-center justify-between bg-slate-100 dark:bg-slate-800 px-2.5 py-1.5 rounded">
+                            <span class="font-mono truncate"
+                                x-text="att.filename + ' (' + att.contentType + ')'"></span>
+                            <button type="button" @click="attachments.splice(i,1); persistDraft()"
+                                class="text-rose-500 ml-2">Remove</button>
+                        </div>
+                    </template>
+                </div>
+                <button type="submit"
+                    class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-lg">Send
+                    Email</button>
+            </form>
+        </div>
+    </div>
+
+    <div x-show="showLauncher" x-cloak
+        class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4"
+        @keydown.escape.window="showLauncher = false">
+        <div @click.outside="showLauncher = false"
+            class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <div>
+                    <h3 class="text-base font-bold">Choose Sanndbox Server</h3>
+                    <p class="text-xs text-slate-500">Switch between simulated communication channels or open the main
+                        portal (:9080)</p>
+                </div>
+                <button @click="showLauncher = false" class="text-xs font-bold text-slate-400">ESC &times;</button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                <a :href="serviceUrl(9081)"
+                    class="p-4 rounded-xl border-2 border-emerald-500 bg-emerald-500/5 space-y-2">
+                    <div class="text-xl">&#9993;</div>
+                    <div class="font-bold text-sm">Email Webmail</div>
+                    <div class="font-mono text-[11px] text-emerald-600 dark:text-emerald-400">:9081 &bull; SMTP :2525
+                    </div>
+                </a>
+                <a :href="serviceUrl(9082)"
+                    class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-sky-500 space-y-2">
+                    <div class="text-xl">&#128241;</div>
+                    <div class="font-bold text-sm">Phone SMS App</div>
+                    <div class="font-mono text-[11px] text-sky-600 dark:text-sky-400">HTTP :9082</div>
+                </a>
+                <a :href="serviceUrl(9083)"
+                    class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-emerald-600 space-y-2">
+                    <div class="text-xl">&#128172;</div>
+                    <div class="font-bold text-sm">WhatsApp Business</div>
+                    <div class="font-mono text-[11px] text-emerald-600 dark:text-emerald-400">HTTP :9083</div>
+                </a>
+                <a :href="serviceUrl(9084)"
+                    class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-sky-500 space-y-2">
+                    <div class="text-xl">&#9992;</div>
+                    <div class="font-bold text-sm">Telegram Desktop</div>
+                    <div class="font-mono text-[11px] text-sky-600 dark:text-sky-400">HTTP :9084</div>
+                </a>
+            </div>
+            <div class="pt-2 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center text-xs">
+                <a :href="serviceUrl(9080)"
+                    class="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">&larr; Open Full Landing
+                    Hub (:9080)</a>
+                <button @click="showLauncher = false"
+                    class="px-3 py-1 rounded bg-slate-100 dark:bg-slate-800">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div x-show="showIntegrationModal" x-cloak
+        class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4"
+        @keydown.escape.window="showIntegrationModal = false">
+        <div @click.outside="showIntegrationModal = false"
+            class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 text-xs">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <h3 class="text-sm font-bold">External Email Integration (SMTP :2525 &amp; HTTP :9081)</h3>
+                <button @click="showIntegrationModal = false" class="text-slate-400 font-bold">ESC &times;</button>
+            </div>
+            <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="font-semibold text-slate-600 dark:text-slate-300">1. HTTP REST API (Port 9081)</span>
+                    <button @click="navigator.clipboard.writeText(httpCurlExample); copiedNotice = 'http'"
+                        class="px-2.5 py-1 rounded bg-emerald-600 text-white font-semibold">
+                        <span x-text="copiedNotice === 'http' ? 'Copied!' : 'Copy HTTP cURL'"></span>
+                    </button>
+                </div>
+                <pre class="bg-slate-950 text-slate-100 p-3 rounded-lg font-mono overflow-x-auto select-all"
+                    x-text="httpCurlExample"></pre>
+            </div>
+            <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="font-semibold text-slate-600 dark:text-slate-300">2. Standard SMTP (Port 2525)</span>
+                    <button @click="navigator.clipboard.writeText(smtpCurlExample); copiedNotice = 'smtp'"
+                        class="px-2.5 py-1 rounded bg-indigo-600 text-white font-semibold">
+                        <span x-text="copiedNotice === 'smtp' ? 'Copied!' : 'Copy SMTP cURL'"></span>
+                    </button>
+                </div>
+                <pre class="bg-slate-950 text-slate-100 p-3 rounded-lg font-mono overflow-x-auto select-all"
+                    x-text="smtpCurlExample"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function webmailClient() {
+            return {
+                themeMode: 'system',
+                sessionId: '',
+                showLauncher: false,
+                showComposeModal: false,
+                showIntegrationModal: false,
+                copiedNotice: '',
+                httpCurlExample: `curl -X POST http://localhost:9081/api/v1/emails -H "Content-Type: application/json" -d '{"sender":"alerts@app.io","recipients":["qa@Sanndbox.local"],"subject":"External API Test","htmlBody":"<!DOCTYPE html><html><head><meta name=\\"viewport\\" content=\\"width=device-width\\"></head><body><table><tr><td>OK</td></tr></table></body></html>","attachments":[]}'`,
+                smtpCurlExample: `curl --url "smtp://localhost:2525" --mail-from "billing@external-app.io" --mail-rcpt "customer@example.com" -T - <<'EOF'\nFrom: billing@external-app.io\nTo: customer@example.com\nSubject: Invoice #9012\nContent-Type: text/html; charset="UTF-8"\n\n<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width"></head><body><table><tr><td>Hello via SMTP</td></tr></table></body></html>\nEOF`,
+                activeFolder: 'ALL',
+                searchQuery: '',
+                selectedEmailId: null,
+                matrixExpanded: false,
+                previewMode: 'rendered',
+                emails: [],
+                sender: 'orders@jaspersmarket.com',
+                recipientsRaw: 'alex@inbox.local',
+                subject: 'Order #4821 Confirmed - Fresh Organic Delivery',
+                htmlBody: '<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="margin:0;padding:24px;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;"><tr><td><img src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=900&q=80" alt="Jasper Market Groceries" style="width:100%;height:200px;object-fit:cover;display:block;"></td></tr><tr><td style="padding:24px;"><span style="background:#dcfce7;color:#166534;font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;">ORDER CONFIRMED #4821</span><h2 style="margin:12px 0 8px;color:#0f172a;font-size:20px;">Your fresh groceries are on the way!</h2><p style="margin:0 0 16px;color:#475569;font-size:14px;line-height:1.5;">Hi Alex, thank you for ordering with Jasper&#39;s Market. Your delivery is scheduled for today between 4:00 PM and 5:00 PM.</p><table width="100%" cellpadding="8" style="border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;font-size:13px;color:#334155;"><tr><td><strong>Organic Strawberries (2x)</strong></td><td align="right">$9.60</td></tr><tr><td><strong>Mediterranean Salad Bowl</strong></td><td align="right">$12.50</td></tr><tr><td><strong>Delivery</strong></td><td align="right" style="color:#059669;font-weight:700;">FREE</td></tr></table><div style="margin-top:20px;"><a href="https://developers.facebook.com" style="display:inline-block;background:#059669;color:#ffffff;text-decoration:none;font-weight:600;font-size:13px;padding:10px 18px;border-radius:8px;">Track Your Delivery</a></div></td></tr></table></body></html>',
+                attachments: [],
+
+                initApp() {
+                    let s = sessionStorage.getItem('email_Sanndbox_session_id');
+                    if (!s) {
+                        s = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2);
+                        sessionStorage.setItem('email_Sanndbox_session_id', s);
+                    }
+                    this.sessionId = s;
+
+                    const savedTheme = sessionStorage.getItem('Sanndbox_theme_mode') || 'system';
+                    this.setTheme(savedTheme);
+                    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+                        if (this.themeMode === 'system') this.applyThemeClass('system');
+                    });
+
+                    const savedEmails = sessionStorage.getItem('email_Sanndbox_items');
+                    if (savedEmails) {
+                        try {
+                            this.emails = JSON.parse(savedEmails);
+                            if (this.emails.length > 0) this.selectedEmailId = this.emails[0].id;
+                        } catch (_) { }
+                    } else {
+                        this.dispatchPreset('clean');
+                    }
+
+                    const sse = new EventSource('/events?sessionId=' + encodeURIComponent(this.sessionId));
+                    sse.addEventListener('email-evaluated', (event) => {
+                        try {
+                            const incoming = JSON.parse(event.data);
+                            if (incoming && incoming.id && !this.emails.some(e => e.id === incoming.id)) {
+                                this.emails.unshift(incoming);
+                                this.selectedEmailId = incoming.id;
+                                this.persistEmails();
+                            }
+                        } catch (_) { }
+                    });
+
+                    window.addEventListener('pagehide', (e) => {
+                        if (!e.persisted) {
+                            sse.close();
+                            navigator.sendBeacon('/api/v1/emails/clear?sessionId=' + encodeURIComponent(this.sessionId));
+                        }
+                    });
+                },
+
+                serviceUrl(port) {
+                    return window.location.protocol + '//' + window.location.hostname + ':' + port;
+                },
+
+                setTheme(mode) {
+                    this.themeMode = mode;
+                    sessionStorage.setItem('Sanndbox_theme_mode', mode);
+                    this.applyThemeClass(mode);
+                },
+
+                applyThemeClass(mode) {
+                    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    const isDark = mode === 'dark' || (mode === 'system' && prefersDark);
+                    document.documentElement.classList.toggle('dark', isDark);
+                    document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+                },
+
+                filteredEmails() {
+                    return this.emails.filter(e => {
+                        if (this.activeFolder !== 'ALL' && e.report.overallStatus !== this.activeFolder) return false;
+                        if (!this.searchQuery) return true;
+                        const q = this.searchQuery.toLowerCase();
+                        return (e.subject || '').toLowerCase().includes(q) ||
+                            (e.sender || '').toLowerCase().includes(q) ||
+                            (e.report.overallStatus || '').toLowerCase().includes(q);
+                    });
+                },
+
+                selectedEmail() {
+                    return this.emails.find(e => e.id === this.selectedEmailId) || null;
+                },
+
+                formatTime(ts) {
+                    try {
+                        return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    } catch (_) { return ts; }
+                },
+
+                persistEmails() {
+                    sessionStorage.setItem('email_Sanndbox_items', JSON.stringify(this.emails.slice(0, 50)));
+                },
+
+                persistDraft() {
+                    sessionStorage.setItem('email_Sanndbox_draft', JSON.stringify({
+                        sender: this.sender,
+                        recipientsRaw: this.recipientsRaw,
+                        subject: this.subject,
+                        htmlBody: this.htmlBody,
+                        attachments: this.attachments
+                    }));
+                },
+
+                async onSSEMessage() {
+                    const res = await fetch('/api/v1/emails?sessionId=' + encodeURIComponent(this.sessionId));
+                    if (res.ok) {
+                        const list = await res.json();
+                        if (Array.isArray(list) && list.length > 0) {
+                            const latest = list[0];
+                            if (!this.emails.some(e => e.id === latest.id)) {
+                                this.emails.unshift(latest);
+                                this.selectedEmailId = latest.id;
+                                this.persistEmails();
+                            }
+                        }
+                    }
+                },
+
+                clearTabCache() {
+                    this.emails = [];
+                    this.selectedEmailId = null;
+                    sessionStorage.removeItem('email_Sanndbox_items');
+                    sessionStorage.removeItem('email_Sanndbox_draft');
+                    fetch('/api/v1/emails/clear?sessionId=' + encodeURIComponent(this.sessionId), { method: 'POST' });
+                },
+
+                handleFileUpload(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const dataUrl = e.target.result;
+                        const base64Part = dataUrl.includes(',') ? dataUrl.split(',')[1] : '';
+                        this.attachments.push({
+                            filename: file.name,
+                            contentType: file.type || 'image/png',
+                            base64Data: base64Part
+                        });
+                    };
+                    reader.readAsDataURL(file);
+                },
+
+                addSamplePDF() {
+                    this.attachments.push({
+                        filename: 'invoice.pdf',
+                        contentType: 'application/pdf',
+                        base64Data: btoa('%PDF-1.7\n1 0 obj << /Type /Catalog >> endobj\n%%EOF')
+                    });
+                },
+
+                addSamplePNG() {
+                    this.attachments.push({
+                        filename: 'fresh_produce_photo.png',
+                        contentType: 'image/png',
+                        base64Data: btoa('\x89PNG\r\n\x1a\nIHDR_SAFE_IMAGE')
+                    });
+                },
+
+                async dispatchPreset(type) {
+                    if (type === 'clean') {
+                        this.sender = 'orders@jaspersmarket.com';
+                        this.recipientsRaw = 'alex@inbox.local';
+                        this.subject = 'Order #4821 Confirmed - Fresh Organic Delivery';
+                        this.htmlBody = '<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="margin:0;padding:24px;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;"><tr><td><img src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=900&q=80" alt="Jasper Market Groceries" style="width:100%;height:200px;object-fit:cover;display:block;"></td></tr><tr><td style="padding:24px;"><span style="background:#dcfce7;color:#166534;font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;">ORDER CONFIRMED #4821</span><h2 style="margin:12px 0 8px;color:#0f172a;font-size:20px;">Your fresh groceries are on the way!</h2><p style="margin:0 0 16px;color:#475569;font-size:14px;line-height:1.5;">Hi Alex, thank you for ordering with Jasper&#39;s Market. Your delivery is scheduled for today between 4:00 PM and 5:00 PM.</p><table width="100%" cellpadding="8" style="border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;font-size:13px;color:#334155;"><tr><td><strong>Organic Strawberries (2x)</strong></td><td align="right">$9.60</td></tr><tr><td><strong>Mediterranean Salad Bowl</strong></td><td align="right">$12.50</td></tr><tr><td><strong>Delivery</strong></td><td align="right" style="color:#059669;font-weight:700;">FREE</td></tr></table><div style="margin-top:20px;"><a href="https://developers.facebook.com" style="display:inline-block;background:#059669;color:#ffffff;text-decoration:none;font-weight:600;font-size:13px;padding:10px 18px;border-radius:8px;">Track Your Delivery</a></div></td></tr></table></body></html>';
+                        this.attachments = [
+                            {
+                                filename: 'invoice_4821.pdf',
+                                contentType: 'application/pdf',
+                                base64Data: btoa('%PDF-1.7\nSafe Document Content\n%%EOF')
+                            },
+                            {
+                                filename: 'order_basket_photo.png',
+                                contentType: 'image/png',
+                                base64Data: btoa('\x89PNG\r\n\x1a\nIHDR_SAFE_IMAGE')
+                            }
+                        ];
+                    } else if (type === 'outlook_warn') {
+                        this.sender = 'marketing@campaigns.io';
+                        this.recipientsRaw = 'alex@inbox.local';
+                        this.subject = 'Spring Launch - CSS Flexbox & External Stylesheet';
+                        this.htmlBody = '<html><head><link rel="stylesheet" href="https://example.com/app.css"></head><body style="font-family:sans-serif;padding:20px;"><div style="display: flex; gap: 16px; background: #fef3c7; padding: 16px; border-radius: 8px;"><div><strong>Flexbox Banner:</strong> Degrades in Outlook Word engine &amp; external stylesheet stripped by Gmail.</div></div></body></html>';
+                        this.attachments = [];
+                    } else if (type === 'malicious') {
+                        this.sender = 'attacker@spoofed-domain.net';
+                        this.recipientsRaw = 'finance@inbox.local';
+                        this.subject = 'URGENT: Wire Transfer Authorization Required';
+                        this.htmlBody = '<html><body style="font-family:sans-serif;padding:20px;background:#fff1f2;"><script>alert("xss")<\/script><h3 style="color:#be123c;">Malicious Payload Simulation</h3><p>Contains prohibited &lt;script&gt; tag, spoofed PDF magic bytes, and EICAR signature.</p></body></html>';
+                        this.attachments = [
+                            {
+                                filename: 'spoofed_header.pdf',
+                                contentType: 'application/pdf',
+                                base64Data: btoa('NOT_A_PDF_HEADER_PAYLOAD')
+                            },
+                            {
+                                filename: 'eicar_exploit.pdf',
+                                contentType: 'application/pdf',
+                                base64Data: btoa('%PDF-1.7\nX5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*')
+                            }
+                        ];
+                    }
+                    await this.submitEmail();
+                },
+
+                async submitEmail() {
+                    const recipients = this.recipientsRaw.split(',').map(item => item.trim()).filter(Boolean);
+                    const res = await fetch('/api/v1/emails', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Sanndbox-Session': this.sessionId
+                        },
+                        body: JSON.stringify({
+                            sessionId: this.sessionId,
+                            sender: this.sender,
+                            recipients: recipients,
+                            subject: this.subject,
+                            htmlBody: this.htmlBody,
+                            attachments: this.attachments
+                        })
+                    });
+                    if (res.ok) {
+                        const created = await res.json();
+                        if (!this.emails.some(e => e.id === created.id)) {
+                            this.emails.unshift(created);
+                            this.selectedEmailId = created.id;
+                            this.persistEmails();
+                        }
+                    }
+                }
+            };
+        }
+    </script>
+</body>
+
+</html>
+
+{{define "message_card"}}
+<div>{{.ID}}</div>
+{{end}}

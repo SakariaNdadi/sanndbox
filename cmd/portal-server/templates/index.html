@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Communications Sanndbox Hub | Select Server</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class' };
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+
+        body,
+        html {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+</head>
+
+<body
+    class="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 font-sans antialiased transition-colors duration-200"
+    x-data="portalHub()" x-init="initTheme()">
+
+    <header
+        class="border-b border-slate-200 dark:border-slate-800 bg-white/85 dark:bg-slate-900/85 backdrop-blur sticky top-0 z-20">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div
+                    class="h-9 w-9 rounded-xl bg-gradient-to-br from-emerald-500 via-sky-500 to-purple-600 flex items-center justify-center text-white font-bold shadow">
+                    CS
+                </div>
+                <div>
+                    <h1 class="text-base font-bold tracking-tight">Communications Sanndbox Hub</h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Select a simulated client environment to
+                        inspect real-time messages &amp; evaluation matrices</p>
+                </div>
+            </div>
+
+            <div
+                class="inline-flex rounded-lg p-0.5 bg-slate-200/80 dark:bg-slate-800 border border-slate-300/80 dark:border-slate-700 text-xs">
+                <button @click="setTheme('system')"
+                    :class="themeMode === 'system' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm font-semibold' : 'text-slate-600 dark:text-slate-400'"
+                    class="px-2.5 py-1 rounded-md transition">System</button>
+                <button @click="setTheme('light')"
+                    :class="themeMode === 'light' ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-600 dark:text-slate-400'"
+                    class="px-2.5 py-1 rounded-md transition">Light</button>
+                <button @click="setTheme('dark')"
+                    :class="themeMode === 'dark' ? 'bg-slate-900 text-white shadow-sm font-semibold' : 'text-slate-600 dark:text-slate-400'"
+                    class="px-2.5 py-1 rounded-md transition">Dark</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-6 py-12 space-y-12">
+        <div class="text-center max-w-2xl mx-auto space-y-3">
+            <span
+                class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                Real-Time HTMX SSE &bull; Tab-Scoped Session Cache &bull; OpenAPI 3.0
+            </span>
+            <h2 class="text-3xl font-extrabold tracking-tight">Choose a Communication Channel</h2>
+            <p class="text-sm text-slate-600 dark:text-slate-400">
+                Each server emulates its real-world client UI (Mail Inbox, Smartphone SMS, WhatsApp/Telegram) while
+                running deep protocol &amp; security evaluations on every payload.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            <a :href="serviceUrl(9081)"
+                class="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-500 dark:hover:border-emerald-500 rounded-2xl p-6 shadow-sm hover:shadow-xl transition flex flex-col justify-between">
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div
+                            class="h-12 w-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 text-xl font-bold">
+                            &#9993;
+                        </div>
+                        <div class="flex gap-1">
+                            <span
+                                class="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">:9081</span>
+                            <span
+                                class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-700">:2525</span>
+                        </div>
+                    </div>
+                    <div>
+                        <h3
+                            class="text-base font-bold group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition">
+                            Email Webmail Inbox</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                            3-pane Webmail Inbox UI. Evaluates HTML client rendering compatibility (Outlook Word engine,
+                            Gmail 102KB clipping, iOS viewport) and scans attachments for magic-byte spoofing &amp;
+                            exploits.
+                        </p>
+                    </div>
+                </div>
+                <div
+                    class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                    <span>Open Email Inbox</span>
+                    <span class="group-hover:translate-x-1 transition-transform">&rarr;</span>
+                </div>
+            </a>
+
+            <a :href="serviceUrl(9082)"
+                class="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-sky-500 dark:hover:border-sky-500 rounded-2xl p-6 shadow-sm hover:shadow-xl transition flex flex-col justify-between">
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div
+                            class="h-12 w-12 rounded-2xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-600 dark:text-sky-400 text-xl font-bold">
+                            &#128241;
+                        </div>
+                        <span
+                            class="text-xs font-mono px-2 py-0.5 rounded bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/30">HTTP
+                            :9082</span>
+                    </div>
+                    <div>
+                        <h3
+                            class="text-base font-bold group-hover:text-sky-600 dark:group-hover:text-sky-400 transition">
+                            Phone SMS Messenger</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                            Interactive Smartphone SMS UI. Validates GSM 03.38 (7-bit 160/153 septet) vs UCS-2 (16-bit
+                            70/67 code unit) encoding downgrades and UDH multi-part concatenation limits.
+                        </p>
+                    </div>
+                </div>
+                <div
+                    class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-semibold text-sky-600 dark:text-sky-400">
+                    <span>Open Phone SMS</span>
+                    <span class="group-hover:translate-x-1 transition-transform">&rarr;</span>
+                </div>
+            </a>
+
+            <a :href="serviceUrl(9083)"
+                class="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-[#008069] dark:hover:border-emerald-500 rounded-2xl p-6 shadow-sm hover:shadow-xl transition flex flex-col justify-between">
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div
+                            class="h-12 w-12 rounded-2xl bg-[#008069]/15 border border-[#008069]/30 flex items-center justify-center text-[#008069] dark:text-emerald-400 text-xl font-bold">
+                            &#128172;
+                        </div>
+                        <span
+                            class="text-xs font-mono px-2 py-0.5 rounded bg-[#008069]/10 text-[#008069] dark:text-emerald-300 border border-[#008069]/30">HTTP
+                            :9083</span>
+                    </div>
+                    <div>
+                        <h3
+                            class="text-base font-bold group-hover:text-[#008069] dark:group-hover:text-emerald-400 transition">
+                            WhatsApp Business UI</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                            Dedicated WhatsApp Business Cloud API Sanndbox with Fraud Audit Case Grouping, SAR/STR
+                            document verification, and official WABA event types.
+                        </p>
+                    </div>
+                </div>
+                <div
+                    class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-semibold text-[#008069] dark:text-emerald-400">
+                    <span>Open WhatsApp UI</span>
+                    <span class="group-hover:translate-x-1 transition-transform">&rarr;</span>
+                </div>
+            </a>
+
+            <a :href="serviceUrl(9084)"
+                class="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-[#2481cc] dark:hover:border-sky-400 rounded-2xl p-6 shadow-sm hover:shadow-xl transition flex flex-col justify-between">
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div
+                            class="h-12 w-12 rounded-2xl bg-[#2481cc]/15 border border-[#2481cc]/30 flex items-center justify-center text-[#2481cc] dark:text-sky-400 text-xl font-bold">
+                            &#9992;
+                        </div>
+                        <span
+                            class="text-xs font-mono px-2 py-0.5 rounded bg-[#2481cc]/10 text-[#2481cc] dark:text-sky-300 border border-[#2481cc]/30">HTTP
+                            :9084</span>
+                    </div>
+                    <div>
+                        <h3
+                            class="text-base font-bold group-hover:text-[#2481cc] dark:group-hover:text-sky-400 transition">
+                            Telegram Desktop UI</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                            Dedicated Telegram Desktop &amp; MTProto TL-Schema evaluator built on official <span
+                                class="font-mono">core.telegram.org/methods</span> RPC constraints.
+                        </p>
+                    </div>
+                </div>
+                <div
+                    class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-semibold text-[#2481cc] dark:text-sky-400">
+                    <span>Open Telegram UI</span>
+                    <span class="group-hover:translate-x-1 transition-transform">&rarr;</span>
+                </div>
+            </a>
+        </div>
+
+        <div
+            class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+            <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Quick External
+                Producer Reference</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-mono">
+                <div
+                    class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 space-y-1">
+                    <div class="font-sans font-bold text-emerald-600 dark:text-emerald-400">Email Server</div>
+                    <div>SMTP: localhost:2525</div>
+                    <div>POST :9081/api/v1/emails</div>
+                    <div>Docs: <a :href="serviceUrl(9081) + '/docs'" class="underline">:9081/docs</a></div>
+                </div>
+                <div
+                    class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 space-y-1">
+                    <div class="font-sans font-bold text-sky-600 dark:text-sky-400">SMS Server</div>
+                    <div>POST :9082/api/v1/sms</div>
+                    <div>SSE: :9082/events</div>
+                    <div>Docs: <a :href="serviceUrl(9082) + '/docs'" class="underline">:9082/docs</a></div>
+                </div>
+                <div
+                    class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 space-y-1">
+                    <div class="font-sans font-bold text-[#008069] dark:text-emerald-400">WhatsApp Server</div>
+                    <div>POST :9083/api/v1/whatsapp</div>
+                    <div>SSE: :9083/events</div>
+                    <div>Docs: <a :href="serviceUrl(9083) + '/docs'" class="underline">:9083/docs</a></div>
+                </div>
+                <div
+                    class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 space-y-1">
+                    <div class="font-sans font-bold text-[#2481cc] dark:text-sky-400">Telegram Server</div>
+                    <div>POST :9084/api/v1/telegram</div>
+                    <div>SSE: :9084/events</div>
+                    <div>Docs: <a :href="serviceUrl(9084) + '/docs'" class="underline">:9084/docs</a></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function portalHub() {
+            return {
+                themeMode: 'system',
+                initTheme() {
+                    const saved = sessionStorage.getItem('Sanndbox_theme_mode') || 'system';
+                    this.setTheme(saved);
+                    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+                        if (this.themeMode === 'system') this.applyTheme('system');
+                    });
+                },
+                setTheme(mode) {
+                    this.themeMode = mode;
+                    sessionStorage.setItem('Sanndbox_theme_mode', mode);
+                    this.applyTheme(mode);
+                },
+                applyTheme(mode) {
+                    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    const isDark = mode === 'dark' || (mode === 'system' && prefersDark);
+                    document.documentElement.classList.toggle('dark', isDark);
+                    document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+                },
+                serviceUrl(port) {
+                    return window.location.protocol + '//' + window.location.hostname + ':' + port;
+                }
+            };
+        }
+    </script>
+</body>
+
+</html>
