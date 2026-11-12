@@ -239,7 +239,9 @@
                 </template>
 
                 <template x-for="item in chronologicalRecords" :key="item.id">
-                    <div class="flex items-end justify-end gap-2">
+                    <div class="flex items-end justify-end gap-2" :class="isSeen(item.id) ? 'opacity-80' : ''">
+                        <template x-if="isUnread(item.id)"><span class="shrink-0 mb-2 h-2.5 w-2.5 rounded-full bg-sky-500" title="Unread"></span></template>
+                        <template x-if="isSeen(item.id)"><span class="shrink-0 mb-1 text-[10px] font-semibold text-slate-400">&#10003; Seen</span></template>
                         <!-- Subtle Validation Pill Next to Bubble -->
                         <button @click="inspectRecord(item)" title="Click to inspect MTProto evaluation"
                             class="shrink-0 mb-1 px-2 py-0.5 rounded-full text-[10px] font-semibold shadow-sm border transition-transform hover:scale-105"
@@ -255,7 +257,7 @@
                         <!-- AUTHENTIC TELEGRAM DESKTOP MESSAGE BUBBLE -->
                         <div @click="inspectRecord(item)"
                             class="max-w-[430px] w-full bg-[#eeffde] dark:bg-[#2b5278] tg-bubble overflow-hidden cursor-pointer transition-shadow"
-                            :class="selectedRecord && selectedRecord.id === item.id ? 'ring-2 ring-[#24A1DE]' : ''">
+                            :class="(selectedRecord && selectedRecord.id === item.id ? 'ring-2 ring-[#24A1DE]' : '') + (isUnread(item.id) ? ' font-bold' : '')">
 
                             <!-- 1. TELEGRAM PHOTO ATTACHMENT (InputMediaUploadedPhoto) -->
                             <template
@@ -424,6 +426,140 @@
     </div>
 
     <script>
+        window.SanndboxSync = (function () {
+            const portalBase = window.location.protocol + '//' + window.location.hostname + ':9080';
+            const baseTitle = document.title;
+            const listeners = new Set();
+            let seenByUid = new Map();
+            let unreadCount = 0;
+            let started = false;
+            let audioContext = null;
+            let lastChimeAt = 0;
+
+            function uidOf(channel, id) {
+                return String(channel).toUpperCase() + ':' + id;
+            }
+
+            function recount() {
+                let total = 0;
+                seenByUid.forEach((isSeen) => { if (!isSeen) total++; });
+                unreadCount = total;
+                document.title = total > 0 ? '(' + total + ') ' + baseTitle : baseTitle;
+                listeners.forEach((listener) => { try { listener(total); } catch (_) { } });
+            }
+
+            function unlockAudio() {
+                try {
+                    const AudioCtor = window.AudioContext || window.webkitAudioContext;
+                    if (!AudioCtor) return;
+                    audioContext = audioContext || new AudioCtor();
+                    if (audioContext.state === 'suspended') audioContext.resume();
+                } catch (_) { }
+            }
+
+            function playChime() {
+                const now = Date.now();
+                if (now - lastChimeAt < 400) return;
+                lastChimeAt = now;
+                try {
+                    unlockAudio();
+                    if (!audioContext || audioContext.state !== 'running') return;
+                    [880, 1318.5].forEach((frequency, index) => {
+                        const oscillator = audioContext.createOscillator();
+                        const gain = audioContext.createGain();
+                        const startAt = audioContext.currentTime + index * 0.12;
+                        oscillator.type = 'sine';
+                        oscillator.frequency.value = frequency;
+                        gain.gain.setValueAtTime(0.0001, startAt);
+                        gain.gain.exponentialRampToValueAtTime(0.18, startAt + 0.02);
+                        gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.25);
+                        oscillator.connect(gain);
+                        gain.connect(audioContext.destination);
+                        oscillator.start(startAt);
+                        oscillator.stop(startAt + 0.26);
+                    });
+                } catch (_) { }
+            }
+
+            function ingest(item, notify) {
+                if (!item || !item.uid) return;
+                const previous = seenByUid.get(item.uid);
+                const isSeen = !!item.seen || previous === true;
+                seenByUid.set(item.uid, isSeen);
+                recount();
+                if (notify && previous === undefined && !isSeen) playChime();
+            }
+
+            async function resync(notify) {
+                try {
+                    const response = await fetch(portalBase + '/api/v1/feed');
+                    if (!response.ok) return;
+                    const snapshot = await response.json();
+                    const previousMap = seenByUid;
+                    const nextMap = new Map();
+                    let hasNewUnread = false;
+                    (snapshot.items || []).forEach((item) => {
+                        const wasSeen = previousMap.get(item.uid);
+                        const isSeen = !!item.seen || wasSeen === true;
+                        nextMap.set(item.uid, isSeen);
+                        if (notify && wasSeen === undefined && !isSeen) hasNewUnread = true;
+                    });
+                    seenByUid = nextMap;
+                    recount();
+                    if (hasNewUnread) playChime();
+                } catch (_) { }
+            }
+
+            function connectStream() {
+                try {
+                    const stream = new EventSource(portalBase + '/events');
+                    stream.addEventListener('communication-event', (event) => {
+                        try { ingest(JSON.parse(event.data), true); } catch (_) { }
+                    });
+                } catch (_) { }
+            }
+
+            function start(options) {
+                if (options && options.onChange) listeners.add(options.onChange);
+                if (started) return;
+                started = true;
+                ['pointerdown', 'keydown', 'touchstart'].forEach((type) => {
+                    window.addEventListener(type, unlockAudio, { once: true, passive: true });
+                });
+                resync(false);
+                connectStream();
+                setInterval(() => resync(true), 15000);
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'visible') resync(true);
+                });
+            }
+
+            function markSeen(channel, id) {
+                const uid = uidOf(channel, id);
+                if (seenByUid.get(uid) === true) return;
+                seenByUid.set(uid, true);
+                recount();
+                try {
+                    fetch(portalBase + '/api/v1/seen', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ uid: uid }),
+                        keepalive: true
+                    }).catch(() => { });
+                } catch (_) { }
+            }
+
+            return {
+                start: start,
+                markSeen: markSeen,
+                isUnread: (channel, id) => seenByUid.get(uidOf(channel, id)) === false,
+                isSeen: (channel, id) => seenByUid.get(uidOf(channel, id)) === true,
+                unreadTotal: () => unreadCount
+            };
+        })();
+    </script>
+
+    <script>
         function telegramApp() {
             return {
                 themeMode: sessionStorage.getItem('Sanndbox_theme_mode') || 'system',
@@ -461,12 +597,18 @@
                         if (this.themeMode === 'system') this.applyTheme();
                     });
 
+                    const targetId = new URLSearchParams(window.location.search).get('id');
                     fetch('/api/v1/telegram?sessionId=' + encodeURIComponent(this.sessionId))
                         .then(r => r.json())
                         .then(data => {
                             if (Array.isArray(data) && data.length > 0) {
                                 this.records = data;
-                                this.selectedRecord = data[0];
+                                const match = targetId ? data.find(r => r.id === targetId) : null;
+                                this.selectedRecord = match || data[0];
+                                if (match) {
+                                    this.inspectorOpen = true;
+                                    this.markSeen(match.id);
+                                }
                                 this.scrollToBottom();
                             } else {
                                 this.loadPreset('audit_text');
@@ -484,6 +626,7 @@
                             this.scrollToBottom();
                         } catch (err) { }
                     });
+                    this.startBackgroundSync();
                 },
                 scrollToBottom() {
                     setTimeout(() => {
@@ -494,7 +637,49 @@
                 inspectRecord(item) {
                     this.selectedRecord = item;
                     this.inspectorOpen = true;
+                    this.markSeen(item.id);
                 },
+                syncTick: 0,
+
+                isUnread(id) {
+                    void this.syncTick;
+                    return SanndboxSync.isUnread('TELEGRAM', id);
+                },
+
+                isSeen(id) {
+                    void this.syncTick;
+                    return SanndboxSync.isSeen('TELEGRAM', id);
+                },
+
+                markSeen(id) {
+                    SanndboxSync.markSeen('TELEGRAM', id);
+                },
+
+                startBackgroundSync() {
+                    SanndboxSync.start({ onChange: () => { this.syncTick++; } });
+                    document.addEventListener('visibilitychange', () => {
+                        if (document.visibilityState === 'visible') this.syncFromServer();
+                    });
+                    setInterval(() => this.syncFromServer(), 15000);
+                },
+
+                async syncFromServer() {
+                    try {
+                        const response = await fetch('/api/v1/telegram?sessionId=' + encodeURIComponent(this.sessionId));
+                        if (!response.ok) return;
+                        const serverList = await response.json();
+                        if (!Array.isArray(serverList)) return;
+                        let added = false;
+                        serverList.slice().reverse().forEach(item => {
+                            if (!this.records.some(r => r.id === item.id)) {
+                                this.records.unshift(item);
+                                added = true;
+                            }
+                        });
+                        if (added) this.scrollToBottom();
+                    } catch (_) { }
+                },
+
                 setTheme(mode) {
                     this.themeMode = mode;
                     sessionStorage.setItem('Sanndbox_theme_mode', mode);
