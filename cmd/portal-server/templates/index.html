@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Communications Sanndbox Hub | Select Server</title>
+    <title>Sanndbox Observability | Unified Multi-Channel Telemetry (:9080)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = { darkMode: 'class' };
@@ -17,242 +17,1141 @@
 
         body,
         html {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
             -webkit-font-smoothing: antialiased;
+        }
+
+        .gf-canvas {
+            background-color: #f4f5f7;
+        }
+
+        html.dark .gf-canvas {
+            background-color: #111217;
+        }
+
+        .gf-panel {
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+        }
+
+        html.dark .gf-panel {
+            background-color: #181b1f;
+            border: 1px solid #2c3235;
+        }
+
+        .gf-panel-header {
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        html.dark .gf-panel-header {
+            border-bottom: 1px solid #2c3235;
+        }
+
+        @keyframes flashHighlight {
+            0% {
+                background-color: rgba(56, 189, 248, 0.28);
+            }
+
+            100% {
+                background-color: transparent;
+            }
+        }
+
+        .animate-row-flash {
+            animation: flashHighlight 1.6s ease-out;
         }
     </style>
 </head>
 
-<body
-    class="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 font-sans antialiased transition-colors duration-200"
-    x-data="portalHub()" x-init="initTheme()">
+<body class="h-screen overflow-hidden flex flex-col gf-canvas text-slate-900 dark:text-[#ccccdc] select-none"
+    x-data="grafanaDashboard()" x-init="initDashboard()">
 
+    <!-- TOP GRAFANA NAVBAR + DIRECT PLATFORM LAUNCHER BUTTONS -->
     <header
-        class="border-b border-slate-200 dark:border-slate-800 bg-white/85 dark:bg-slate-900/85 backdrop-blur sticky top-0 z-20">
-        <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div
-                    class="h-9 w-9 rounded-xl bg-gradient-to-br from-emerald-500 via-sky-500 to-purple-600 flex items-center justify-center text-white font-bold shadow">
-                    CS
-                </div>
-                <div>
-                    <h1 class="text-base font-bold tracking-tight">Communications Sanndbox Hub</h1>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">Select a simulated client environment to
-                        inspect real-time messages &amp; evaluation matrices</p>
+        class="h-12 shrink-0 bg-white dark:bg-[#181b1f] border-b border-slate-200 dark:border-[#2c3235] px-4 flex items-center justify-between gap-3 z-30">
+        <!-- Breadcrumb & Brand -->
+        <div class="flex items-center gap-3 min-w-0">
+            <div
+                class="h-7 w-7 rounded bg-gradient-to-br from-amber-500 via-orange-500 to-rose-600 flex items-center justify-center text-white font-extrabold text-xs shadow-sm shrink-0">
+                CS
+            </div>
+            <div class="flex items-center gap-1.5 text-xs truncate">
+                <span class="font-bold text-slate-900 dark:text-white truncate">Sanndbox Observability Hub</span>
+                <span
+                    class="px-1.5 py-0.5 text-[10px] font-mono rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">LIVE
+                    SSE</span>
+            </div>
+
+            <!-- DIRECT PLATFORM SERVER LAUNCHER BAR (1-Click Jump to Dedicated Emulator) -->
+            <nav class="hidden lg:flex items-center gap-1.5 pl-3 border-l border-slate-200 dark:border-[#2c3235]">
+                <span class="text-[10px] font-mono uppercase tracking-wider text-slate-400 mr-1">Open Platform:</span>
+                <a :href="serviceUrl(9081)"
+                    class="px-2.5 py-1 rounded text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500 hover:text-white text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 transition flex items-center gap-1.5">
+                    <span>&#9993;</span>
+                    <span>Email</span>
+                    <span class="font-mono text-[10px] opacity-75">:9081</span>
+                </a>
+                <a :href="serviceUrl(9082)"
+                    class="px-2.5 py-1 rounded text-xs font-semibold bg-sky-500/10 hover:bg-sky-500 hover:text-white text-sky-600 dark:text-sky-400 border border-sky-500/30 transition flex items-center gap-1.5">
+                    <span>&#128241;</span>
+                    <span>SMS</span>
+                    <span class="font-mono text-[10px] opacity-75">:9082</span>
+                </a>
+                <a :href="serviceUrl(9083)"
+                    class="px-2.5 py-1 rounded text-xs font-semibold bg-teal-500/10 hover:bg-teal-500 hover:text-white text-teal-600 dark:text-teal-400 border border-teal-500/30 transition flex items-center gap-1.5">
+                    <span>&#128172;</span>
+                    <span>WhatsApp</span>
+                    <span class="font-mono text-[10px] opacity-75">:9083</span>
+                </a>
+                <a :href="serviceUrl(9084)"
+                    class="px-2.5 py-1 rounded text-xs font-semibold bg-blue-500/10 hover:bg-blue-500 hover:text-white text-blue-600 dark:text-blue-400 border border-blue-500/30 transition flex items-center gap-1.5">
+                    <span>&#9992;</span>
+                    <span>Telegram</span>
+                    <span class="font-mono text-[10px] opacity-75">:9084</span>
+                </a>
+            </nav>
+        </div>
+
+        <!-- Grafana Controls Bar -->
+        <div class="flex items-center gap-2">
+            <!-- Simulate Traffic Dropdown -->
+            <div class="relative" x-data="{ openSim: false }">
+                <button @click="openSim = !openSim"
+                    class="px-2.5 py-1 rounded text-xs font-semibold bg-orange-500 hover:bg-orange-400 text-white flex items-center gap-1.5 shadow-sm transition">
+                    <span>&#9889;</span>
+                    <span>Simulate Traffic</span>
+                    <span class="text-[10px]">&#9662;</span>
+                </button>
+                <div x-show="openSim" @click.outside="openSim = false" x-cloak
+                    class="absolute right-0 mt-1.5 w-56 gf-panel shadow-2xl py-1.5 text-xs z-50">
+                    <button @click="triggerSimulation('ALL'); openSim = false"
+                        class="w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-[#22252b] font-semibold flex items-center justify-between">
+                        <span>Burst All 4 Channels</span>
+                        <span class="font-mono text-[10px] text-orange-400">4 events</span>
+                    </button>
+                    <div class="my-1 border-t border-slate-200 dark:border-[#2c3235]"></div>
+                    <button @click="triggerSimulation('EMAIL'); openSim = false"
+                        class="w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-[#22252b] flex items-center justify-between">
+                        <span class="text-emerald-500 font-medium">&#9993; Email (:9081)</span>
+                        <span class="font-mono text-[10px] text-slate-400">MIME</span>
+                    </button>
+                    <button @click="triggerSimulation('SMS'); openSim = false"
+                        class="w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-[#22252b] flex items-center justify-between">
+                        <span class="text-sky-400 font-medium">&#128241; Phone SMS (:9082)</span>
+                        <span class="font-mono text-[10px] text-slate-400">GSM-7</span>
+                    </button>
+                    <button @click="triggerSimulation('WHATSAPP'); openSim = false"
+                        class="w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-[#22252b] flex items-center justify-between">
+                        <span class="text-teal-400 font-medium">&#128172; WhatsApp (:9083)</span>
+                        <span class="font-mono text-[10px] text-slate-400">WABA</span>
+                    </button>
+                    <button @click="triggerSimulation('TELEGRAM'); openSim = false"
+                        class="w-full px-3 py-1.5 text-left hover:bg-slate-100 dark:hover:bg-[#22252b] flex items-center justify-between">
+                        <span class="text-blue-400 font-medium">&#9992; Telegram (:9084)</span>
+                        <span class="font-mono text-[10px] text-slate-400">MTProto</span>
+                    </button>
                 </div>
             </div>
 
+            <!-- Pause / Resume Stream -->
+            <button @click="streamPaused = !streamPaused"
+                :class="streamPaused ? 'bg-amber-500/20 text-amber-400 border-amber-500/40' : 'bg-slate-100 dark:bg-[#22252b] text-slate-700 dark:text-[#ccccdc] border-slate-300 dark:border-[#2c3235]'"
+                class="px-2.5 py-1 rounded border text-xs font-medium flex items-center gap-1.5 transition"
+                title="Pause or Resume live SSE ingestion">
+                <span class="h-2 w-2 rounded-full"
+                    :class="streamPaused ? 'bg-amber-400' : 'bg-emerald-400 animate-pulse'"></span>
+                <span x-text="streamPaused ? 'Paused' : 'Streaming Live'"></span>
+            </button>
+
+            <!-- Refresh Snapshot -->
+            <button @click="refreshSnapshot()" title="Poll all 4 servers now"
+                class="px-2.5 py-1 rounded border border-slate-300 dark:border-[#2c3235] bg-slate-100 dark:bg-[#22252b] hover:bg-slate-200 dark:hover:bg-[#2c3235] text-xs font-medium transition">
+                &#8635; Sync
+            </button>
+
+            <!-- Theme Switcher -->
             <div
-                class="inline-flex rounded-lg p-0.5 bg-slate-200/80 dark:bg-slate-800 border border-slate-300/80 dark:border-slate-700 text-xs">
-                <button @click="setTheme('system')"
-                    :class="themeMode === 'system' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm font-semibold' : 'text-slate-600 dark:text-slate-400'"
-                    class="px-2.5 py-1 rounded-md transition">System</button>
-                <button @click="setTheme('light')"
-                    :class="themeMode === 'light' ? 'bg-white text-slate-900 shadow-sm font-semibold' : 'text-slate-600 dark:text-slate-400'"
-                    class="px-2.5 py-1 rounded-md transition">Light</button>
+                class="hidden sm:inline-flex rounded p-0.5 bg-slate-200 dark:bg-[#22252b] border border-slate-300 dark:border-[#2c3235] text-[11px]">
                 <button @click="setTheme('dark')"
-                    :class="themeMode === 'dark' ? 'bg-slate-900 text-white shadow-sm font-semibold' : 'text-slate-600 dark:text-slate-400'"
-                    class="px-2.5 py-1 rounded-md transition">Dark</button>
+                    :class="themeMode === 'dark' ? 'bg-slate-900 text-white font-semibold' : 'text-slate-500 dark:text-[#8e8e9e]'"
+                    class="px-2 py-0.5 rounded">Dark</button>
+                <button @click="setTheme('light')"
+                    :class="themeMode === 'light' ? 'bg-white text-slate-900 font-semibold shadow-sm' : 'text-slate-500 dark:text-[#8e8e9e]'"
+                    class="px-2 py-0.5 rounded">Light</button>
+                <button @click="setTheme('system')"
+                    :class="themeMode === 'system' ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-semibold' : 'text-slate-500 dark:text-[#8e8e9e]'"
+                    class="px-2 py-0.5 rounded">Auto</button>
             </div>
         </div>
     </header>
 
-    <main class="max-w-6xl mx-auto px-6 py-12 space-y-12">
-        <div class="text-center max-w-2xl mx-auto space-y-3">
-            <span
-                class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
-                Real-Time HTMX SSE &bull; Tab-Scoped Session Cache &bull; OpenAPI 3.0
-            </span>
-            <h2 class="text-3xl font-extrabold tracking-tight">Choose a Communication Channel</h2>
-            <p class="text-sm text-slate-600 dark:text-slate-400">
-                Each server emulates its real-world client UI (Mail Inbox, Smartphone SMS, WhatsApp/Telegram) while
-                running deep protocol &amp; security evaluations on every payload.
-            </p>
-        </div>
+    <!-- GRAFANA TEMPLATE VARIABLES SUB-BAR (Channel, Status, Read State & Search) -->
+    <div
+        class="shrink-0 bg-slate-100 dark:bg-[#141619] border-b border-slate-200 dark:border-[#2c3235] px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div class="flex flex-wrap items-center gap-2">
+            <!-- Variable: Channel -->
+            <div class="flex items-center rounded border border-slate-300 dark:border-[#2c3235] overflow-hidden">
+                <span
+                    class="px-2 py-1 bg-slate-200 dark:bg-[#22252b] text-amber-600 dark:text-amber-400 font-mono text-[11px] font-semibold">channel</span>
+                <div class="flex bg-white dark:bg-[#181b1f] divide-x divide-slate-200 dark:divide-[#2c3235]">
+                    <button @click="channelFilter = 'ALL'"
+                        :class="channelFilter === 'ALL' ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold' : 'hover:bg-slate-50 dark:hover:bg-[#22252b]'"
+                        class="px-2.5 py-1 transition">All (<span x-text="items.length"></span>)</button>
+                    <button @click="channelFilter = 'EMAIL'"
+                        :class="channelFilter === 'EMAIL' ? 'bg-emerald-500/20 text-emerald-500 font-bold' : 'hover:bg-slate-50 dark:hover:bg-[#22252b]'"
+                        class="px-2.5 py-1 transition">&#9993; Email (<span
+                            x-text="countByChannel('EMAIL')"></span>)</button>
+                    <button @click="channelFilter = 'SMS'"
+                        :class="channelFilter === 'SMS' ? 'bg-sky-500/20 text-sky-400 font-bold' : 'hover:bg-slate-50 dark:hover:bg-[#22252b]'"
+                        class="px-2.5 py-1 transition">&#128241; SMS (<span
+                            x-text="countByChannel('SMS')"></span>)</button>
+                    <button @click="channelFilter = 'WHATSAPP'"
+                        :class="channelFilter === 'WHATSAPP' ? 'bg-teal-500/20 text-teal-400 font-bold' : 'hover:bg-slate-50 dark:hover:bg-[#22252b]'"
+                        class="px-2.5 py-1 transition">&#128172; WhatsApp (<span
+                            x-text="countByChannel('WHATSAPP')"></span>)</button>
+                    <button @click="channelFilter = 'TELEGRAM'"
+                        :class="channelFilter === 'TELEGRAM' ? 'bg-blue-500/20 text-blue-400 font-bold' : 'hover:bg-slate-50 dark:hover:bg-[#22252b]'"
+                        class="px-2.5 py-1 transition">&#9992; Telegram (<span
+                            x-text="countByChannel('TELEGRAM')"></span>)</button>
+                </div>
+            </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-            <a :href="serviceUrl(9081)"
-                class="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-500 dark:hover:border-emerald-500 rounded-2xl p-6 shadow-sm hover:shadow-xl transition flex flex-col justify-between">
-                <div class="space-y-4">
-                    <div class="flex items-center justify-between">
-                        <div
-                            class="h-12 w-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 text-xl font-bold">
-                            &#9993;
-                        </div>
-                        <div class="flex gap-1">
-                            <span
-                                class="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">:9081</span>
-                            <span
-                                class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-700">:2525</span>
-                        </div>
-                    </div>
-                    <div>
-                        <h3
-                            class="text-base font-bold group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition">
-                            Email Webmail Inbox</h3>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                            3-pane Webmail Inbox UI. Evaluates HTML client rendering compatibility (Outlook Word engine,
-                            Gmail 102KB clipping, iOS viewport) and scans attachments for magic-byte spoofing &amp;
-                            exploits.
-                        </p>
-                    </div>
+            <!-- Variable: Status -->
+            <div class="flex items-center rounded border border-slate-300 dark:border-[#2c3235] overflow-hidden">
+                <span
+                    class="px-2 py-1 bg-slate-200 dark:bg-[#22252b] text-amber-600 dark:text-amber-400 font-mono text-[11px] font-semibold">status</span>
+                <div class="flex bg-white dark:bg-[#181b1f] divide-x divide-slate-200 dark:divide-[#2c3235]">
+                    <button @click="statusFilter = 'ALL'"
+                        :class="statusFilter === 'ALL' ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold' : ''"
+                        class="px-2 py-1">All</button>
+                    <button @click="statusFilter = 'PASS'"
+                        :class="statusFilter === 'PASS' ? 'bg-emerald-500/20 text-emerald-400 font-bold' : ''"
+                        class="px-2 py-1">PASS</button>
+                    <button @click="statusFilter = 'WARN'"
+                        :class="statusFilter === 'WARN' ? 'bg-amber-500/20 text-amber-400 font-bold' : ''"
+                        class="px-2 py-1">WARN</button>
+                    <button @click="statusFilter = 'FAIL'"
+                        :class="statusFilter === 'FAIL' ? 'bg-rose-500/20 text-rose-400 font-bold' : ''"
+                        class="px-2 py-1">FAIL</button>
                 </div>
-                <div
-                    class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                    <span>Open Email Inbox</span>
-                    <span class="group-hover:translate-x-1 transition-transform">&rarr;</span>
-                </div>
-            </a>
+            </div>
 
-            <a :href="serviceUrl(9082)"
-                class="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-sky-500 dark:hover:border-sky-500 rounded-2xl p-6 shadow-sm hover:shadow-xl transition flex flex-col justify-between">
-                <div class="space-y-4">
-                    <div class="flex items-center justify-between">
-                        <div
-                            class="h-12 w-12 rounded-2xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-600 dark:text-sky-400 text-xl font-bold">
-                            &#128241;
-                        </div>
-                        <span
-                            class="text-xs font-mono px-2 py-0.5 rounded bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/30">HTTP
-                            :9082</span>
-                    </div>
-                    <div>
-                        <h3
-                            class="text-base font-bold group-hover:text-sky-600 dark:group-hover:text-sky-400 transition">
-                            Phone SMS Messenger</h3>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                            Interactive Smartphone SMS UI. Validates GSM 03.38 (7-bit 160/153 septet) vs UCS-2 (16-bit
-                            70/67 code unit) encoding downgrades and UDH multi-part concatenation limits.
-                        </p>
-                    </div>
-                </div>
-                <div
-                    class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-semibold text-sky-600 dark:text-sky-400">
-                    <span>Open Phone SMS</span>
-                    <span class="group-hover:translate-x-1 transition-transform">&rarr;</span>
-                </div>
-            </a>
-
-            <a :href="serviceUrl(9083)"
-                class="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-[#008069] dark:hover:border-emerald-500 rounded-2xl p-6 shadow-sm hover:shadow-xl transition flex flex-col justify-between">
-                <div class="space-y-4">
-                    <div class="flex items-center justify-between">
-                        <div
-                            class="h-12 w-12 rounded-2xl bg-[#008069]/15 border border-[#008069]/30 flex items-center justify-center text-[#008069] dark:text-emerald-400 text-xl font-bold">
-                            &#128172;
-                        </div>
-                        <span
-                            class="text-xs font-mono px-2 py-0.5 rounded bg-[#008069]/10 text-[#008069] dark:text-emerald-300 border border-[#008069]/30">HTTP
-                            :9083</span>
-                    </div>
-                    <div>
-                        <h3
-                            class="text-base font-bold group-hover:text-[#008069] dark:group-hover:text-emerald-400 transition">
-                            WhatsApp Business UI</h3>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                            Dedicated WhatsApp Business Cloud API Sanndbox with Fraud Audit Case Grouping, SAR/STR
-                            document verification, and official WABA event types.
-                        </p>
-                    </div>
-                </div>
-                <div
-                    class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-semibold text-[#008069] dark:text-emerald-400">
-                    <span>Open WhatsApp UI</span>
-                    <span class="group-hover:translate-x-1 transition-transform">&rarr;</span>
-                </div>
-            </a>
-
-            <a :href="serviceUrl(9084)"
-                class="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-[#2481cc] dark:hover:border-sky-400 rounded-2xl p-6 shadow-sm hover:shadow-xl transition flex flex-col justify-between">
-                <div class="space-y-4">
-                    <div class="flex items-center justify-between">
-                        <div
-                            class="h-12 w-12 rounded-2xl bg-[#2481cc]/15 border border-[#2481cc]/30 flex items-center justify-center text-[#2481cc] dark:text-sky-400 text-xl font-bold">
-                            &#9992;
-                        </div>
-                        <span
-                            class="text-xs font-mono px-2 py-0.5 rounded bg-[#2481cc]/10 text-[#2481cc] dark:text-sky-300 border border-[#2481cc]/30">HTTP
-                            :9084</span>
-                    </div>
-                    <div>
-                        <h3
-                            class="text-base font-bold group-hover:text-[#2481cc] dark:group-hover:text-sky-400 transition">
-                            Telegram Desktop UI</h3>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                            Dedicated Telegram Desktop &amp; MTProto TL-Schema evaluator built on official <span
-                                class="font-mono">core.telegram.org/methods</span> RPC constraints.
-                        </p>
-                    </div>
-                </div>
-                <div
-                    class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-semibold text-[#2481cc] dark:text-sky-400">
-                    <span>Open Telegram UI</span>
-                    <span class="group-hover:translate-x-1 transition-transform">&rarr;</span>
-                </div>
-            </a>
-        </div>
-
-        <div
-            class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
-            <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Quick External
-                Producer Reference</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-mono">
-                <div
-                    class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 space-y-1">
-                    <div class="font-sans font-bold text-emerald-600 dark:text-emerald-400">Email Server</div>
-                    <div>SMTP: localhost:2525</div>
-                    <div>POST :9081/api/v1/emails</div>
-                    <div>Docs: <a :href="serviceUrl(9081) + '/docs'" class="underline">:9081/docs</a></div>
-                </div>
-                <div
-                    class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 space-y-1">
-                    <div class="font-sans font-bold text-sky-600 dark:text-sky-400">SMS Server</div>
-                    <div>POST :9082/api/v1/sms</div>
-                    <div>SSE: :9082/events</div>
-                    <div>Docs: <a :href="serviceUrl(9082) + '/docs'" class="underline">:9082/docs</a></div>
-                </div>
-                <div
-                    class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 space-y-1">
-                    <div class="font-sans font-bold text-[#008069] dark:text-emerald-400">WhatsApp Server</div>
-                    <div>POST :9083/api/v1/whatsapp</div>
-                    <div>SSE: :9083/events</div>
-                    <div>Docs: <a :href="serviceUrl(9083) + '/docs'" class="underline">:9083/docs</a></div>
-                </div>
-                <div
-                    class="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 space-y-1">
-                    <div class="font-sans font-bold text-[#2481cc] dark:text-sky-400">Telegram Server</div>
-                    <div>POST :9084/api/v1/telegram</div>
-                    <div>SSE: :9084/events</div>
-                    <div>Docs: <a :href="serviceUrl(9084) + '/docs'" class="underline">:9084/docs</a></div>
+            <!-- Variable: Read / Unread State -->
+            <div class="flex items-center rounded border border-slate-300 dark:border-[#2c3235] overflow-hidden">
+                <span
+                    class="px-2 py-1 bg-slate-200 dark:bg-[#22252b] text-amber-600 dark:text-amber-400 font-mono text-[11px] font-semibold">state</span>
+                <div class="flex bg-white dark:bg-[#181b1f] divide-x divide-slate-200 dark:divide-[#2c3235]">
+                    <button @click="readFilter = 'ALL'"
+                        :class="readFilter === 'ALL' ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold' : ''"
+                        class="px-2 py-1">All</button>
+                    <button @click="readFilter = 'UNREAD'"
+                        :class="readFilter === 'UNREAD' ? 'bg-sky-500/20 text-sky-400 font-bold' : ''"
+                        class="px-2 py-1 flex items-center gap-1">
+                        <span class="h-1.5 w-1.5 rounded-full bg-sky-400"></span>
+                        <span>Unread (<span x-text="unreadCount()"></span>)</span>
+                    </button>
+                    <button @click="readFilter = 'SEEN'"
+                        :class="readFilter === 'SEEN' ? 'bg-slate-500/20 text-slate-300 font-bold' : ''"
+                        class="px-2 py-1">&#10003; Seen (<span x-text="seenCount()"></span>)</button>
                 </div>
             </div>
         </div>
-    </main>
+
+        <!-- LogQL-style Filter Input + Mark All Seen + Clear -->
+        <div class="flex items-center gap-2 flex-1 max-w-md">
+            <div
+                class="flex-1 flex items-center rounded border border-slate-300 dark:border-[#2c3235] bg-white dark:bg-[#181b1f] overflow-hidden">
+                <span class="px-2 text-[11px] font-mono text-slate-400">|=</span>
+                <input type="search" x-model="searchQuery"
+                    placeholder="Filter stream by sender, recipient, subject, message..."
+                    class="w-full bg-transparent px-2 py-1 text-xs focus:outline-none select-text">
+            </div>
+            <button @click="markAllSeen()" title="Mark all events as seen"
+                class="px-2 py-1 rounded border border-slate-300 dark:border-[#2c3235] bg-white dark:bg-[#181b1f] hover:bg-slate-100 dark:hover:bg-[#22252b] text-[11px] font-medium shrink-0">
+                &#10003; Mark All Seen
+            </button>
+            <button @click="clearFeed()" title="Clear aggregated stream"
+                class="px-2 py-1 rounded border border-rose-500/30 text-rose-500 hover:bg-rose-500/10 text-[11px] font-medium shrink-0">
+                Clear
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD GRID -->
+    <div class="flex-1 flex overflow-hidden p-3 gap-3">
+
+        <!-- LEFT / CENTER OBSERVABILITY WORKSPACE -->
+        <div class="flex-1 flex flex-col gap-3 overflow-hidden min-w-0">
+
+            <!-- ROW 1: GRAFANA STAT PANELS & PLATFORM LAUNCHER CARDS (6 COLUMNS) -->
+            <div class="grid grid-cols-2 md:grid-cols-6 gap-2.5 shrink-0">
+
+                <!-- Panel 1: Total Throughput & Unread Counter -->
+                <div class="gf-panel p-3 flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-[11px] text-slate-500 dark:text-[#8e8e9e]">
+                        <span class="font-semibold uppercase tracking-wider">Total Events</span>
+                        <span class="px-1.5 py-0.2 rounded bg-sky-500/15 text-sky-400 font-mono text-[10px] font-bold"
+                            x-text="unreadCount() + ' UNREAD'"></span>
+                    </div>
+                    <div class="mt-1 flex items-baseline justify-between">
+                        <span class="text-2xl font-extrabold font-mono text-slate-900 dark:text-white"
+                            x-text="items.length"></span>
+                        <span class="text-[11px] font-mono text-emerald-500"
+                            x-text="passRate() + '% PASS'"></span>
+                    </div>
+                    <div class="mt-2 h-1.5 w-full rounded-full bg-slate-200 dark:bg-[#22252b] overflow-hidden flex">
+                        <div class="bg-emerald-500 h-full transition-all"
+                            :style="'width:' + statusPercent('PASS') + '%'"></div>
+                        <div class="bg-amber-500 h-full transition-all"
+                            :style="'width:' + statusPercent('WARN') + '%'"></div>
+                        <div class="bg-rose-500 h-full transition-all"
+                            :style="'width:' + statusPercent('FAIL') + '%'"></div>
+                    </div>
+                </div>
+
+                <!-- Panel 2: Evaluation Health Breakdown -->
+                <div class="gf-panel p-3 flex flex-col justify-between">
+                    <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-[#8e8e9e]">
+                        Rule Evaluations
+                    </div>
+                    <div class="grid grid-cols-3 gap-1 mt-1 text-center font-mono">
+                        <button @click="statusFilter = statusFilter === 'PASS' ? 'ALL' : 'PASS'"
+                            class="p-1 rounded bg-emerald-500/10 border border-emerald-500/20 hover:border-emerald-500">
+                            <div class="text-sm font-bold text-emerald-500" x-text="countByStatus('PASS')"></div>
+                            <div class="text-[9px] text-slate-400">PASS</div>
+                        </button>
+                        <button @click="statusFilter = statusFilter === 'WARN' ? 'ALL' : 'WARN'"
+                            class="p-1 rounded bg-amber-500/10 border border-amber-500/20 hover:border-amber-500">
+                            <div class="text-sm font-bold text-amber-400" x-text="countByStatus('WARN')"></div>
+                            <div class="text-[9px] text-slate-400">WARN</div>
+                        </button>
+                        <button @click="statusFilter = statusFilter === 'FAIL' ? 'ALL' : 'FAIL'"
+                            class="p-1 rounded bg-rose-500/10 border border-rose-500/20 hover:border-rose-500">
+                            <div class="text-sm font-bold text-rose-500" x-text="countByStatus('FAIL')"></div>
+                            <div class="text-[9px] text-slate-400">FAIL</div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Panel 3: Email Server Node (:9081 / :2525) -->
+                <div class="gf-panel p-3 flex flex-col justify-between transition"
+                    :class="channelFilter === 'EMAIL' ? 'ring-1 ring-emerald-500' : ''">
+                    <div class="flex items-center justify-between">
+                        <button @click="channelFilter = channelFilter === 'EMAIL' ? 'ALL' : 'EMAIL'"
+                            class="text-xs font-bold text-emerald-500 flex items-center gap-1 hover:underline">
+                            <span>&#9993;</span>
+                            <span>Email</span>
+                        </button>
+                        <span class="flex items-center gap-1 text-[10px] font-mono">
+                            <span class="h-2 w-2 rounded-full"
+                                :class="isChannelUp('EMAIL') ? 'bg-emerald-400' : 'bg-rose-500'"></span>
+                            <span>:9081</span>
+                        </span>
+                    </div>
+                    <div class="mt-1.5 flex items-center justify-between gap-2">
+                        <div>
+                            <span class="text-xl font-bold font-mono text-slate-900 dark:text-white"
+                                x-text="countByChannel('EMAIL')"></span>
+                            <span x-show="unreadByChannel('EMAIL') > 0"
+                                class="ml-1 px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold bg-sky-500/20 text-sky-400"
+                                x-text="unreadByChannel('EMAIL') + ' new'"></span>
+                        </div>
+                        <a :href="serviceUrl(9081)"
+                            class="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-semibold shadow-sm transition">
+                            Launch Email &rarr;
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Panel 4: SMS Server Node (:9082) -->
+                <div class="gf-panel p-3 flex flex-col justify-between transition"
+                    :class="channelFilter === 'SMS' ? 'ring-1 ring-sky-400' : ''">
+                    <div class="flex items-center justify-between">
+                        <button @click="channelFilter = channelFilter === 'SMS' ? 'ALL' : 'SMS'"
+                            class="text-xs font-bold text-sky-400 flex items-center gap-1 hover:underline">
+                            <span>&#128241;</span>
+                            <span>SMS</span>
+                        </button>
+                        <span class="flex items-center gap-1 text-[10px] font-mono">
+                            <span class="h-2 w-2 rounded-full"
+                                :class="isChannelUp('SMS') ? 'bg-emerald-400' : 'bg-rose-500'"></span>
+                            <span>:9082</span>
+                        </span>
+                    </div>
+                    <div class="mt-1.5 flex items-center justify-between gap-2">
+                        <div>
+                            <span class="text-xl font-bold font-mono text-slate-900 dark:text-white"
+                                x-text="countByChannel('SMS')"></span>
+                            <span x-show="unreadByChannel('SMS') > 0"
+                                class="ml-1 px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold bg-sky-500/20 text-sky-400"
+                                x-text="unreadByChannel('SMS') + ' new'"></span>
+                        </div>
+                        <a :href="serviceUrl(9082)"
+                            class="px-2.5 py-1 rounded bg-sky-500 hover:bg-sky-400 text-white text-[11px] font-semibold shadow-sm transition">
+                            Launch SMS &rarr;
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Panel 5: WhatsApp Business Node (:9083) -->
+                <div class="gf-panel p-3 flex flex-col justify-between transition"
+                    :class="channelFilter === 'WHATSAPP' ? 'ring-1 ring-teal-400' : ''">
+                    <div class="flex items-center justify-between">
+                        <button @click="channelFilter = channelFilter === 'WHATSAPP' ? 'ALL' : 'WHATSAPP'"
+                            class="text-xs font-bold text-teal-400 flex items-center gap-1 hover:underline">
+                            <span>&#128172;</span>
+                            <span>WhatsApp</span>
+                        </button>
+                        <span class="flex items-center gap-1 text-[10px] font-mono">
+                            <span class="h-2 w-2 rounded-full"
+                                :class="isChannelUp('WHATSAPP') ? 'bg-emerald-400' : 'bg-rose-500'"></span>
+                            <span>:9083</span>
+                        </span>
+                    </div>
+                    <div class="mt-1.5 flex items-center justify-between gap-2">
+                        <div>
+                            <span class="text-xl font-bold font-mono text-slate-900 dark:text-white"
+                                x-text="countByChannel('WHATSAPP')"></span>
+                            <span x-show="unreadByChannel('WHATSAPP') > 0"
+                                class="ml-1 px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold bg-sky-500/20 text-sky-400"
+                                x-text="unreadByChannel('WHATSAPP') + ' new'"></span>
+                        </div>
+                        <a :href="serviceUrl(9083)"
+                            class="px-2.5 py-1 rounded bg-[#00a884] hover:bg-[#008f6f] text-white text-[11px] font-semibold shadow-sm transition">
+                            Launch WA &rarr;
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Panel 6: Telegram Desktop Node (:9084) -->
+                <div class="gf-panel p-3 flex flex-col justify-between transition"
+                    :class="channelFilter === 'TELEGRAM' ? 'ring-1 ring-blue-400' : ''">
+                    <div class="flex items-center justify-between">
+                        <button @click="channelFilter = channelFilter === 'TELEGRAM' ? 'ALL' : 'TELEGRAM'"
+                            class="text-xs font-bold text-blue-400 flex items-center gap-1 hover:underline">
+                            <span>&#9992;</span>
+                            <span>Telegram</span>
+                        </button>
+                        <span class="flex items-center gap-1 text-[10px] font-mono">
+                            <span class="h-2 w-2 rounded-full"
+                                :class="isChannelUp('TELEGRAM') ? 'bg-emerald-400' : 'bg-rose-500'"></span>
+                            <span>:9084</span>
+                        </span>
+                    </div>
+                    <div class="mt-1.5 flex items-center justify-between gap-2">
+                        <div>
+                            <span class="text-xl font-bold font-mono text-slate-900 dark:text-white"
+                                x-text="countByChannel('TELEGRAM')"></span>
+                            <span x-show="unreadByChannel('TELEGRAM') > 0"
+                                class="ml-1 px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold bg-sky-500/20 text-sky-400"
+                                x-text="unreadByChannel('TELEGRAM') + ' new'"></span>
+                        </div>
+                        <a :href="serviceUrl(9084)"
+                            class="px-2.5 py-1 rounded bg-[#24A1DE] hover:bg-[#1d8abf] text-white text-[11px] font-semibold shadow-sm transition">
+                            Launch TG &rarr;
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ROW 2: GRAFANA LOKI-STYLE REAL-TIME EVENT VOLUME HISTOGRAM -->
+            <div class="gf-panel px-4 py-2.5 shrink-0">
+                <div class="flex items-center justify-between text-[11px] mb-2">
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold uppercase tracking-wider text-slate-600 dark:text-[#ccccdc]">Event
+                            Stream Volume &amp; Channel Telemetry</span>
+                        <span class="text-slate-400 font-mono text-[10px]">(Bright bars = Unread &bull; Dimmed bars =
+                            Seen)</span>
+                    </div>
+                    <div class="flex items-center gap-3 text-[10px] font-mono">
+                        <span class="flex items-center gap-1"><span
+                                class="h-2 w-2 rounded-sm bg-emerald-500"></span>EMAIL</span>
+                        <span class="flex items-center gap-1"><span
+                                class="h-2 w-2 rounded-sm bg-sky-400"></span>SMS</span>
+                        <span class="flex items-center gap-1"><span
+                                class="h-2 w-2 rounded-sm bg-teal-400"></span>WHATSAPP</span>
+                        <span class="flex items-center gap-1"><span
+                                class="h-2 w-2 rounded-sm bg-blue-500"></span>TELEGRAM</span>
+                    </div>
+                </div>
+                <div class="h-11 flex items-end gap-1 pt-1 border-b border-slate-200 dark:border-[#2c3235]">
+                    <template x-for="(bar, bIdx) in histogramBars()" :key="bIdx">
+                        <div @click="if (bar.item) selectEvent(bar.item, true)"
+                            class="flex-1 flex flex-col justify-end h-full group cursor-pointer relative">
+                            <div class="w-full rounded-t transition-all group-hover:opacity-100" :class="[
+                                    bar.channel === 'EMAIL' ? 'bg-emerald-500' : '',
+                                    bar.channel === 'SMS' ? 'bg-sky-400' : '',
+                                    bar.channel === 'WHATSAPP' ? 'bg-teal-400' : '',
+                                    bar.channel === 'TELEGRAM' ? 'bg-blue-500' : '',
+                                    !bar.channel ? 'bg-slate-200 dark:bg-[#22252b]' : '',
+                                    bar.item && bar.item.seen ? 'opacity-35' : 'opacity-100'
+                                ]" :style="'height:' + bar.heightPct + '%'"></div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- ROW 3: UNIFIED REAL-TIME LOGS / COMMUNICATIONS STREAM TABLE -->
+            <div class="gf-panel flex-1 flex flex-col overflow-hidden min-h-0">
+                <div class="gf-panel-header px-4 py-2 flex items-center justify-between text-xs shrink-0">
+                    <div class="flex items-center gap-2.5">
+                        <span class="font-bold text-slate-800 dark:text-white">Unified Live Communications Stream</span>
+                        <span class="font-mono text-[11px] text-slate-400"
+                            x-text="'Showing ' + filteredItems().length + ' of ' + items.length + ' events'"></span>
+                    </div>
+                    <div class="flex items-center gap-3 text-[11px] text-slate-400">
+                        <span class="flex items-center gap-1.5"><span
+                                class="h-2 w-2 rounded-full bg-sky-400"></span>Unread</span>
+                        <span class="flex items-center gap-1 text-slate-500">&#10003; Seen (Viewed in Dashboard or
+                            Server)</span>
+                    </div>
+                </div>
+
+                <!-- Column Headers -->
+                <div
+                    class="grid grid-cols-12 gap-2 px-4 py-1.5 bg-slate-100 dark:bg-[#141619] border-b border-slate-200 dark:border-[#2c3235] text-[10px] font-mono uppercase tracking-wider text-slate-500 dark:text-[#8e8e9e] shrink-0">
+                    <div class="col-span-2 sm:col-span-1">State / Time</div>
+                    <div class="col-span-2 sm:col-span-1">Channel</div>
+                    <div class="col-span-1">Status</div>
+                    <div class="col-span-3 sm:col-span-2">From &rarr; To</div>
+                    <div class="col-span-4 sm:col-span-5">Subject / Payload Preview</div>
+                    <div class="hidden sm:block sm:col-span-2 text-right">Action</div>
+                </div>
+
+                <!-- Stream Rows -->
+                <div
+                    class="flex-1 overflow-y-auto divide-y divide-slate-200/70 dark:divide-[#22252b] font-mono text-xs select-text">
+                    <template x-if="filteredItems().length === 0">
+                        <div class="p-12 text-center space-y-3 font-sans">
+                            <div class="text-2xl">&#128225;</div>
+                            <div class="text-sm font-bold text-slate-700 dark:text-white">No communication events match
+                                the current filter</div>
+                            <p class="text-xs text-slate-400 max-w-md mx-auto">
+                                Send an Email (:2525/:9081), SMS (:9082), WhatsApp (:9083), or Telegram (:9084) request
+                                from your app, or click below to fire sample traffic across all 4 servers.
+                            </p>
+                            <button @click="triggerSimulation('ALL')"
+                                class="px-4 py-2 rounded bg-orange-500 hover:bg-orange-400 text-white text-xs font-semibold shadow">
+                                &#9889; Generate Sample Traffic Across All 4 Channels
+                            </button>
+                        </div>
+                    </template>
+
+                    <template x-for="item in filteredItems()" :key="item.uid">
+                        <div @click="selectEvent(item, true)"
+                            :class="[
+                                selectedItem && selectedItem.uid === item.uid
+                                    ? 'bg-sky-500/10 dark:bg-sky-500/15 border-l-4 border-l-sky-400'
+                                    : (!item.seen
+                                        ? 'bg-white dark:bg-[#1c2026] border-l-4 border-l-amber-400 hover:bg-slate-50 dark:hover:bg-[#22252b]'
+                                        : 'bg-slate-50/60 dark:bg-[#141619]/60 border-l-4 border-l-transparent opacity-70 hover:opacity-100 hover:bg-slate-100/70 dark:hover:bg-[#1d2026]'),
+                                item.isNew ? 'animate-row-flash' : ''
+                            ]"
+                            class="grid grid-cols-12 gap-2 px-4 py-2.5 items-center cursor-pointer transition">
+
+                            <!-- Read State Indicator + Time -->
+                            <div class="col-span-2 sm:col-span-1 flex items-center gap-1.5 text-[11px] truncate">
+                                <template x-if="!item.seen">
+                                    <span class="h-2 w-2 rounded-full bg-sky-400 shrink-0"
+                                        title="Unread — Click to inspect"></span>
+                                </template>
+                                <template x-if="item.seen">
+                                    <span class="text-[10px] text-emerald-500 font-bold shrink-0"
+                                        title="Seen / Inspected">&#10003;</span>
+                                </template>
+                                <span :class="item.seen ? 'text-slate-400' : 'text-slate-800 dark:text-white font-bold'"
+                                    x-text="formatTime(item.timestamp)"></span>
+                            </div>
+
+                            <!-- Channel Pill -->
+                            <div class="col-span-2 sm:col-span-1">
+                                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold inline-flex items-center gap-1"
+                                    :class="{
+                                        'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30': item.channel === 'EMAIL',
+                                        'bg-sky-500/15 text-sky-400 border border-sky-500/30': item.channel === 'SMS',
+                                        'bg-teal-500/15 text-teal-400 border border-teal-500/30': item.channel === 'WHATSAPP',
+                                        'bg-blue-500/15 text-blue-400 border border-blue-500/30': item.channel === 'TELEGRAM'
+                                    }" x-text="item.channel"></span>
+                            </div>
+
+                            <!-- Evaluation Status -->
+                            <div class="col-span-1">
+                                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold" :class="{
+                                        'bg-emerald-500/20 text-emerald-400': item.status === 'PASS',
+                                        'bg-amber-500/20 text-amber-400': item.status === 'WARN',
+                                        'bg-rose-500/20 text-rose-400': item.status === 'FAIL'
+                                    }" x-text="item.status"></span>
+                            </div>
+
+                            <!-- Sender -> Recipient -->
+                            <div class="col-span-3 sm:col-span-2 truncate text-[11px]">
+                                <span
+                                    :class="item.seen ? 'text-slate-600 dark:text-slate-400' : 'text-slate-900 dark:text-white font-bold'"
+                                    x-text="item.sender"></span>
+                                <span class="text-slate-400">&rarr;</span>
+                                <span class="text-slate-500 dark:text-[#8e8e9e]" x-text="item.recipient"></span>
+                            </div>
+
+                            <!-- Title + Preview + Seen Badge -->
+                            <div class="col-span-4 sm:col-span-5 min-w-0 flex items-center gap-2">
+                                <span
+                                    class="hidden lg:inline-block px-1.5 py-0.5 rounded bg-slate-200/70 dark:bg-[#22252b] text-[10px] text-slate-600 dark:text-[#8e8e9e] shrink-0"
+                                    x-text="item.protocolTag"></span>
+                                <div class="truncate font-sans text-xs">
+                                    <span
+                                        :class="item.seen ? 'font-medium text-slate-600 dark:text-slate-300' : 'font-extrabold text-slate-950 dark:text-white'"
+                                        x-text="item.title"></span>
+                                    <span class="text-slate-400 mx-1">&mdash;</span>
+                                    <span class="text-slate-500 dark:text-[#8e8e9e]" x-text="item.preview"></span>
+                                </div>
+                            </div>
+
+                            <!-- Direct Deep-Link Jump Button + Seen Pill -->
+                            <div class="hidden sm:flex sm:col-span-2 justify-end items-center gap-1.5">
+                                <template x-if="item.seen">
+                                    <span
+                                        class="px-1.5 py-0.5 rounded text-[9px] font-sans font-semibold bg-slate-200/70 dark:bg-[#22252b] text-slate-500 dark:text-slate-400">
+                                        Seen
+                                    </span>
+                                </template>
+                                <a :href="deepLinkUrl(item)" @click.stop="markItemSeen(item)"
+                                    class="px-2.5 py-1 rounded text-[11px] font-sans font-semibold bg-slate-200/80 dark:bg-[#22252b] hover:bg-amber-500 hover:text-white dark:hover:bg-amber-500 text-slate-800 dark:text-white transition flex items-center gap-1">
+                                    <span x-text="'Open :' + item.port"></span>
+                                    <span>&rarr;</span>
+                                </a>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT DRAWER: GRAFANA EVENT INSPECTOR & DEEP-LINK LAUNCHER -->
+        <aside x-show="selectedItem" x-cloak
+            class="w-96 shrink-0 gf-panel flex flex-col overflow-hidden shadow-xl select-text">
+            <template x-if="selectedItem">
+                <div class="flex-1 flex flex-col overflow-hidden">
+                    <!-- Drawer Header -->
+                    <div
+                        class="gf-panel-header p-3.5 flex items-start justify-between gap-2 bg-slate-50 dark:bg-[#141619]">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold" :class="{
+                                        'bg-emerald-500/20 text-emerald-400': selectedItem.channel === 'EMAIL',
+                                        'bg-sky-500/20 text-sky-400': selectedItem.channel === 'SMS',
+                                        'bg-teal-500/20 text-teal-400': selectedItem.channel === 'WHATSAPP',
+                                        'bg-blue-500/20 text-blue-400': selectedItem.channel === 'TELEGRAM'
+                                    }" x-text="selectedItem.channel + ' :' + selectedItem.port"></span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold" :class="{
+                                        'bg-emerald-500/20 text-emerald-400': selectedItem.status === 'PASS',
+                                        'bg-amber-500/20 text-amber-400': selectedItem.status === 'WARN',
+                                        'bg-rose-500/20 text-rose-400': selectedItem.status === 'FAIL'
+                                    }" x-text="selectedItem.status"></span>
+                                <template x-if="selectedItem.seen">
+                                    <span
+                                        class="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/15 text-emerald-400">&#10003;
+                                        SEEN</span>
+                                </template>
+                            </div>
+                            <h3 class="text-sm font-bold text-slate-900 dark:text-white mt-1.5 truncate"
+                                x-text="selectedItem.title"></h3>
+                            <div class="text-[11px] font-mono text-slate-400 truncate"
+                                x-text="'ID: ' + selectedItem.id + ' • ' + formatTime(selectedItem.timestamp)"></div>
+                        </div>
+                        <button @click="selectedItem = null"
+                            class="text-slate-400 hover:text-white font-bold text-sm px-1.5">&times;</button>
+                    </div>
+
+                    <!-- Primary CTA: Jump Directly to Native Channel Emulator UI -->
+                    <div
+                        class="p-3 bg-amber-500/10 border-b border-amber-500/20 flex items-center justify-between gap-2">
+                        <div class="text-xs">
+                            <div class="font-bold text-amber-500">Inspect in Native Client UI</div>
+                            <div class="text-[11px] text-slate-400">Opens this exact message in <span class="font-mono"
+                                    x-text="':' + selectedItem.port"></span></div>
+                        </div>
+                        <a :href="deepLinkUrl(selectedItem)" @click="markItemSeen(selectedItem)"
+                            class="px-3 py-1.5 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shrink-0 shadow transition">
+                            Open in <span x-text="selectedItem.channel"></span> &rarr;
+                        </a>
+                    </div>
+
+                    <!-- Inspector Body -->
+                    <div class="flex-1 overflow-y-auto p-3.5 space-y-4 text-xs">
+                        <!-- Metadata Grid -->
+                        <div class="grid grid-cols-2 gap-2 font-mono text-[11px]">
+                            <div
+                                class="p-2 rounded bg-slate-100 dark:bg-[#141619] border border-slate-200 dark:border-[#2c3235]">
+                                <div class="text-[10px] text-slate-400">SENDER</div>
+                                <div class="font-semibold text-slate-900 dark:text-white truncate"
+                                    x-text="selectedItem.sender"></div>
+                            </div>
+                            <div
+                                class="p-2 rounded bg-slate-100 dark:bg-[#141619] border border-slate-200 dark:border-[#2c3235]">
+                                <div class="text-[10px] text-slate-400">RECIPIENT</div>
+                                <div class="font-semibold text-slate-900 dark:text-white truncate"
+                                    x-text="selectedItem.recipient"></div>
+                            </div>
+                            <div
+                                class="p-2 rounded bg-slate-100 dark:bg-[#141619] border border-slate-200 dark:border-[#2c3235]">
+                                <div class="text-[10px] text-slate-400">SOURCE</div>
+                                <div class="font-semibold text-slate-900 dark:text-white truncate"
+                                    x-text="selectedItem.source"></div>
+                            </div>
+                            <div
+                                class="p-2 rounded bg-slate-100 dark:bg-[#141619] border border-slate-200 dark:border-[#2c3235]">
+                                <div class="text-[10px] text-slate-400">PROTOCOL</div>
+                                <div class="font-semibold text-slate-900 dark:text-white truncate"
+                                    x-text="selectedItem.protocolTag"></div>
+                            </div>
+                        </div>
+
+                        <!-- Message Content Preview -->
+                        <div class="space-y-1">
+                            <div class="text-[10px] font-mono uppercase tracking-wider text-slate-400">Message Preview
+                            </div>
+                            <div class="p-3 rounded bg-slate-100 dark:bg-[#141619] border border-slate-200 dark:border-[#2c3235] text-xs whitespace-pre-wrap break-words"
+                                x-text="selectedItem.preview"></div>
+                        </div>
+
+                        <!-- Evaluation Matrix Checks -->
+                        <div class="space-y-1.5">
+                            <div class="text-[10px] font-mono uppercase tracking-wider text-slate-400"
+                                x-text="'Protocol & Security Checks (' + (selectedItem.criteria ? selectedItem.criteria.length : 0) + ')'">
+                            </div>
+                            <template x-for="(crit, cIdx) in (selectedItem.criteria || [])" :key="cIdx">
+                                <div
+                                    class="p-2.5 rounded bg-slate-100 dark:bg-[#141619] border border-slate-200 dark:border-[#2c3235] space-y-1">
+                                    <div class="flex items-center justify-between gap-2">
+                                        <span class="font-semibold text-slate-800 dark:text-white"
+                                            x-text="crit.category + ' • ' + crit.target"></span>
+                                        <span class="px-1.5 py-0.5 rounded font-mono text-[10px] font-bold" :class="{
+                                                'bg-emerald-500/20 text-emerald-400': crit.status === 'PASS',
+                                                'bg-amber-500/20 text-amber-400': crit.status === 'WARN',
+                                                'bg-rose-500/20 text-rose-400': crit.status === 'FAIL'
+                                            }" x-text="crit.status"></span>
+                                    </div>
+                                    <div class="text-[11px] text-slate-500 dark:text-[#8e8e9e]" x-text="crit.details">
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Raw JSON Payload -->
+                        <div class="space-y-1">
+                            <div class="text-[10px] font-mono uppercase tracking-wider text-slate-400">Raw Event JSON
+                            </div>
+                            <pre class="p-3 rounded bg-slate-950 text-emerald-300 font-mono text-[10px] overflow-x-auto leading-relaxed"
+                                x-text="JSON.stringify(selectedItem.rawPayload, null, 2)"></pre>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </aside>
+    </div>
 
     <script>
-        function portalHub() {
+        window.SanndboxSync = (function () {
+            const portalBase = window.location.protocol + '//' + window.location.hostname + ':9080';
+            const baseTitle = document.title;
+            const listeners = new Set();
+            let seenByUid = new Map();
+            let unreadCount = 0;
+            let started = false;
+            let audioContext = null;
+            let lastChimeAt = 0;
+
+            function uidOf(channel, id) {
+                return String(channel).toUpperCase() + ':' + id;
+            }
+
+            function recount() {
+                let total = 0;
+                seenByUid.forEach((isSeen) => { if (!isSeen) total++; });
+                unreadCount = total;
+                document.title = total > 0 ? '(' + total + ') ' + baseTitle : baseTitle;
+                listeners.forEach((listener) => { try { listener(total); } catch (_) { } });
+            }
+
+            function unlockAudio() {
+                try {
+                    const AudioCtor = window.AudioContext || window.webkitAudioContext;
+                    if (!AudioCtor) return;
+                    audioContext = audioContext || new AudioCtor();
+                    if (audioContext.state === 'suspended') audioContext.resume();
+                } catch (_) { }
+            }
+
+            function playChime() {
+                const now = Date.now();
+                if (now - lastChimeAt < 400) return;
+                lastChimeAt = now;
+                try {
+                    unlockAudio();
+                    if (!audioContext || audioContext.state !== 'running') return;
+                    [880, 1318.5].forEach((frequency, index) => {
+                        const oscillator = audioContext.createOscillator();
+                        const gain = audioContext.createGain();
+                        const startAt = audioContext.currentTime + index * 0.12;
+                        oscillator.type = 'sine';
+                        oscillator.frequency.value = frequency;
+                        gain.gain.setValueAtTime(0.0001, startAt);
+                        gain.gain.exponentialRampToValueAtTime(0.18, startAt + 0.02);
+                        gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.25);
+                        oscillator.connect(gain);
+                        gain.connect(audioContext.destination);
+                        oscillator.start(startAt);
+                        oscillator.stop(startAt + 0.26);
+                    });
+                } catch (_) { }
+            }
+
+            function ingest(item, notify) {
+                if (!item || !item.uid) return;
+                const previous = seenByUid.get(item.uid);
+                const isSeen = !!item.seen || previous === true;
+                seenByUid.set(item.uid, isSeen);
+                recount();
+                if (notify && previous === undefined && !isSeen) playChime();
+            }
+
+            async function resync(notify) {
+                try {
+                    const response = await fetch(portalBase + '/api/v1/feed');
+                    if (!response.ok) return;
+                    const snapshot = await response.json();
+                    const previousMap = seenByUid;
+                    const nextMap = new Map();
+                    let hasNewUnread = false;
+                    (snapshot.items || []).forEach((item) => {
+                        const wasSeen = previousMap.get(item.uid);
+                        const isSeen = !!item.seen || wasSeen === true;
+                        nextMap.set(item.uid, isSeen);
+                        if (notify && wasSeen === undefined && !isSeen) hasNewUnread = true;
+                    });
+                    seenByUid = nextMap;
+                    recount();
+                    if (hasNewUnread) playChime();
+                } catch (_) { }
+            }
+
+            function connectStream() {
+                try {
+                    const stream = new EventSource(portalBase + '/events');
+                    stream.addEventListener('communication-event', (event) => {
+                        try { ingest(JSON.parse(event.data), true); } catch (_) { }
+                    });
+                } catch (_) { }
+            }
+
+            function start(options) {
+                if (options && options.onChange) listeners.add(options.onChange);
+                if (started) return;
+                started = true;
+                ['pointerdown', 'keydown', 'touchstart'].forEach((type) => {
+                    window.addEventListener(type, unlockAudio, { once: true, passive: true });
+                });
+                resync(false);
+                connectStream();
+                setInterval(() => resync(true), 15000);
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'visible') resync(true);
+                });
+            }
+
+            function markSeen(channel, id) {
+                const uid = uidOf(channel, id);
+                if (seenByUid.get(uid) === true) return;
+                seenByUid.set(uid, true);
+                recount();
+                try {
+                    fetch(portalBase + '/api/v1/seen', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ uid: uid }),
+                        keepalive: true
+                    }).catch(() => { });
+                } catch (_) { }
+            }
+
             return {
-                themeMode: 'system',
-                initTheme() {
-                    const saved = sessionStorage.getItem('Sanndbox_theme_mode') || 'system';
-                    this.setTheme(saved);
+                start: start,
+                markSeen: markSeen,
+                isUnread: (channel, id) => seenByUid.get(uidOf(channel, id)) === false,
+                isSeen: (channel, id) => seenByUid.get(uidOf(channel, id)) === true,
+                unreadTotal: () => unreadCount
+            };
+        })();
+    </script>
+
+    <script>
+        SanndboxSync.start();
+    </script>
+
+    <script>
+        function grafanaDashboard() {
+            return {
+                themeMode: 'dark',
+                channelFilter: 'ALL',
+                statusFilter: 'ALL',
+                readFilter: 'ALL',
+                searchQuery: '',
+                streamPaused: false,
+                items: [],
+                localSeenMap: {},
+                sources: {},
+                selectedItem: null,
+
+                initDashboard() {
+                    try {
+                        const savedSeen = localStorage.getItem('Sanndbox_seen_uids');
+                        if (savedSeen) this.localSeenMap = JSON.parse(savedSeen) || {};
+                    } catch (_) { }
+
+                    const savedTheme = sessionStorage.getItem('Sanndbox_theme_mode') || 'dark';
+                    this.setTheme(savedTheme);
                     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
                         if (this.themeMode === 'system') this.applyTheme('system');
                     });
+
+                    this.refreshSnapshot(true);
+
+                    const sse = new EventSource('/events');
+                    sse.addEventListener('communication-event', (event) => {
+                        if (this.streamPaused) return;
+                        try {
+                            const incoming = JSON.parse(event.data);
+                            if (!incoming || !incoming.uid) return;
+                            if (this.localSeenMap[incoming.uid]) incoming.seen = true;
+
+                            const existingIdx = this.items.findIndex(i => i.uid === incoming.uid);
+                            if (existingIdx !== -1) {
+                                incoming.seen = incoming.seen || this.items[existingIdx].seen;
+                                this.items.splice(existingIdx, 1, incoming);
+                            } else {
+                                incoming.isNew = true;
+                                this.items.unshift(incoming);
+                            }
+                            if (this.selectedItem && this.selectedItem.uid === incoming.uid) {
+                                this.selectedItem = incoming;
+                            }
+                            if (this.sources[incoming.channel]) {
+                                this.sources[incoming.channel].connected = true;
+                            }
+                        } catch (_) { }
+                    });
+
+                    window.addEventListener('storage', (e) => {
+                        if (e.key === 'Sanndbox_seen_uids' && e.newValue) {
+                            try {
+                                this.localSeenMap = JSON.parse(e.newValue) || {};
+                                this.items.forEach(item => {
+                                    if (this.localSeenMap[item.uid]) item.seen = true;
+                                });
+                            } catch (_) { }
+                        }
+                    });
+
+                    setInterval(() => {
+                        if (!this.streamPaused) this.refreshSnapshot(false);
+                    }, 4000);
                 },
+
+                persistSeenLocal() {
+                    try {
+                        localStorage.setItem('Sanndbox_seen_uids', JSON.stringify(this.localSeenMap));
+                    } catch (_) { }
+                },
+
+                async markItemSeen(item) {
+                    if (!item || !item.uid) return;
+                    item.seen = true;
+                    this.localSeenMap[item.uid] = true;
+                    this.persistSeenLocal();
+                    try {
+                        await fetch('/api/v1/seen', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ uid: item.uid })
+                        });
+                    } catch (_) { }
+                },
+
+                async markAllSeen() {
+                    this.items.forEach(i => {
+                        i.seen = true;
+                        this.localSeenMap[i.uid] = true;
+                    });
+                    this.persistSeenLocal();
+                    try {
+                        await fetch('/api/v1/seen', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ all: true })
+                        });
+                    } catch (_) { }
+                },
+
+                async refreshSnapshot(autoSeedIfEmpty = false) {
+                    try {
+                        const res = await fetch('/api/v1/feed?refresh=1');
+                        if (!res.ok) return;
+                        const data = await res.json();
+                        if (data.sources) this.sources = data.sources;
+                        if (Array.isArray(data.items)) {
+                            data.items.forEach(item => {
+                                if (this.localSeenMap[item.uid]) item.seen = true;
+                                if (item.seen) this.localSeenMap[item.uid] = true;
+                            });
+                            this.persistSeenLocal();
+                            this.items = data.items;
+                            if (!this.selectedItem && this.items.length > 0) {
+                                this.selectedItem = this.items[0];
+                            }
+                            if (autoSeedIfEmpty && this.items.length === 0) {
+                                this.triggerSimulation('ALL');
+                            }
+                        }
+                    } catch (_) { }
+                },
+
+                async triggerSimulation(channel) {
+                    try {
+                        const res = await fetch('/api/v1/simulate', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ channel })
+                        });
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data.snapshot && Array.isArray(data.snapshot.items)) {
+                                data.snapshot.items.forEach(item => {
+                                    if (this.localSeenMap[item.uid]) item.seen = true;
+                                });
+                                this.items = data.snapshot.items;
+                                this.sources = data.snapshot.sources || this.sources;
+                                if (this.items.length > 0) this.selectedItem = this.items[0];
+                            }
+                        }
+                    } catch (_) { }
+                },
+
+                async clearFeed() {
+                    await fetch('/api/v1/feed/clear', { method: 'POST' });
+                    this.items = [];
+                    this.localSeenMap = {};
+                    this.persistSeenLocal();
+                    this.selectedItem = null;
+                },
+
+                filteredItems() {
+                    return this.items.filter(item => {
+                        if (this.channelFilter !== 'ALL' && item.channel !== this.channelFilter) return false;
+                        if (this.statusFilter !== 'ALL' && item.status !== this.statusFilter) return false;
+                        if (this.readFilter === 'UNREAD' && item.seen) return false;
+                        if (this.readFilter === 'SEEN' && !item.seen) return false;
+                        if (!this.searchQuery) return true;
+                        const q = this.searchQuery.toLowerCase();
+                        return (item.title || '').toLowerCase().includes(q) ||
+                            (item.preview || '').toLowerCase().includes(q) ||
+                            (item.sender || '').toLowerCase().includes(q) ||
+                            (item.recipient || '').toLowerCase().includes(q) ||
+                            (item.protocolTag || '').toLowerCase().includes(q) ||
+                            (item.channel || '').toLowerCase().includes(q);
+                    });
+                },
+
+                selectEvent(item, markRead = true) {
+                    this.selectedItem = item;
+                    if (markRead && item) {
+                        this.markItemSeen(item);
+                    }
+                },
+
+                countByChannel(ch) {
+                    return this.items.filter(i => i.channel === ch).length;
+                },
+
+                unreadByChannel(ch) {
+                    return this.items.filter(i => i.channel === ch && !i.seen).length;
+                },
+
+                unreadCount() {
+                    return this.items.filter(i => !i.seen).length;
+                },
+
+                seenCount() {
+                    return this.items.filter(i => i.seen).length;
+                },
+
+                countByStatus(st) {
+                    return this.items.filter(i => i.status === st).length;
+                },
+
+                passRate() {
+                    if (this.items.length === 0) return 100;
+                    return Math.round((this.countByStatus('PASS') / this.items.length) * 100);
+                },
+
+                statusPercent(st) {
+                    if (this.items.length === 0) return st === 'PASS' ? 100 : 0;
+                    return ((this.countByStatus(st) / this.items.length) * 100).toFixed(1);
+                },
+
+                isChannelUp(ch) {
+                    return this.sources[ch] ? !!this.sources[ch].connected : true;
+                },
+
+                histogramBars() {
+                    const maxBars = 48;
+                    const recent = this.filteredItems().slice(0, maxBars).reverse();
+                    const bars = [];
+                    for (let i = 0; i < maxBars; i++) {
+                        const item = recent[i];
+                        if (item) {
+                            const baseHeight = item.status === 'FAIL' ? 100 : (item.status === 'WARN' ? 78 : 58);
+                            bars.push({
+                                channel: item.channel,
+                                heightPct: baseHeight,
+                                item: item
+                            });
+                        } else {
+                            bars.push({ channel: '', heightPct: 12, item: null });
+                        }
+                    }
+                    return bars;
+                },
+
+                serviceUrl(port) {
+                    return window.location.protocol + '//' + window.location.hostname + ':' + port;
+                },
+
+                deepLinkUrl(item) {
+                    if (!item) return '#';
+                    return this.serviceUrl(item.port) + '/?id=' + encodeURIComponent(item.id);
+                },
+
+                formatTime(ts) {
+                    if (!ts) return '';
+                    try {
+                        return new Date(ts).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    } catch (_) {
+                        return ts;
+                    }
+                },
+
                 setTheme(mode) {
                     this.themeMode = mode;
                     sessionStorage.setItem('Sanndbox_theme_mode', mode);
                     this.applyTheme(mode);
                 },
+
                 applyTheme(mode) {
                     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
                     const isDark = mode === 'dark' || (mode === 'system' && prefersDark);
                     document.documentElement.classList.toggle('dark', isDark);
                     document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
-                },
-                serviceUrl(port) {
-                    return window.location.protocol + '//' + window.location.hostname + ':' + port;
                 }
             };
         }
