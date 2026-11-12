@@ -226,6 +226,24 @@
                 </template>
             </div>
 
+            <div class="px-3 py-1.5 flex flex-wrap items-center gap-1.5 text-[10px] border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90">
+                <button @click="readFilter = 'ALL'"
+                    :class="readFilter === 'ALL' ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900' : 'bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-300'"
+                    class="px-2 py-0.5 rounded-full font-semibold transition">All (<span x-text="records.length"></span>)</button>
+                <button @click="readFilter = 'UNREAD'"
+                    :class="readFilter === 'UNREAD' ? 'bg-sky-600 text-white' : 'bg-sky-500/10 text-sky-700 dark:text-sky-300'"
+                    class="px-2 py-0.5 rounded-full font-semibold transition">&#9679; Unread (<span x-text="records.filter(i => isUnread(i.id)).length"></span>)</button>
+                <button @click="readFilter = 'READ'"
+                    :class="readFilter === 'READ' ? 'bg-slate-600 text-white' : 'bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-300'"
+                    class="px-2 py-0.5 rounded-full font-semibold transition">&#10003; Read (<span x-text="records.filter(i => isSeen(i.id)).length"></span>)</button>
+                <span class="text-slate-300 dark:text-slate-700">|</span>
+                <template x-for="statusName in ['ALL', 'PASS', 'WARN', 'FAIL']" :key="statusName">
+                    <button @click="statusFilter = statusName"
+                        :class="statusFilter === statusName ? 'bg-emerald-600 text-white' : 'bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-300'"
+                        class="px-2 py-0.5 rounded-full font-semibold transition" x-text="statusName"></button>
+                </template>
+            </div>
+
             <!-- Messages Stream (Chronological Top-to-Bottom) -->
             <div id="tg-chat-scroll" class="flex-1 overflow-y-auto px-6 md:px-16 py-5 space-y-3 flex flex-col">
                 <template x-if="records.length === 0">
@@ -601,7 +619,8 @@
                     mediaPreviewUrl: ''
                 },
                 get chronologicalRecords() {
-                    return [...this.records].reverse();
+                    void this.syncTick;
+                    return [...this.records].reverse().filter(item => this.matchesFilters(item));
                 },
                 initApp() {
                     let sid = sessionStorage.getItem('Sanndbox_tab_session_id');
@@ -658,6 +677,15 @@
                     this.markSeen(item.id);
                 },
                 syncTick: 0,
+                readFilter: 'ALL',
+                statusFilter: 'ALL',
+
+                matchesFilters(item) {
+                    if (this.readFilter === 'UNREAD' && !this.isUnread(item.id)) return false;
+                    if (this.readFilter === 'READ' && !this.isSeen(item.id)) return false;
+                    if (this.statusFilter !== 'ALL' && item.report.overallStatus !== this.statusFilter) return false;
+                    return true;
+                },
 
                 isUnread(id) {
                     void this.syncTick;
@@ -679,15 +707,24 @@
                         if (document.visibilityState === 'visible') this.syncFromServer();
                     });
                     setInterval(() => this.syncFromServer(), 15000);
+                    setTimeout(() => this.syncFromServer(), 1500);
                 },
 
                 async syncFromServer() {
                     try {
+                        const fetchStartedAt = Date.now();
                         const response = await fetch('/api/v1/telegram?sessionId=' + encodeURIComponent(this.sessionId));
                         if (!response.ok) return;
                         const serverList = await response.json();
                         if (!Array.isArray(serverList)) return;
-                        let added = false;
+                        const serverIds = new Set(serverList.map(item => item.id));
+                        const staleCutoff = fetchStartedAt - 3000;
+                        const keptItems = this.records.filter(item => serverIds.has(item.id) || Date.parse(item.timestamp) > staleCutoff);
+                        let added = keptItems.length !== this.records.length;
+                        if (added) {
+                            this.records = keptItems;
+                        if (this.selectedRecord && !this.records.some(r => r.id === this.selectedRecord.id)) this.selectedRecord = this.records[0] || null;
+                        }
                         serverList.slice().reverse().forEach(item => {
                             if (!this.records.some(r => r.id === item.id)) {
                                 this.records.unshift(item);
