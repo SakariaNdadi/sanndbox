@@ -526,11 +526,22 @@
                 } catch (_) { }
             }
 
+            function forgetChannel(channel) {
+                const prefix = channel === 'ALL' ? '' : String(channel).toUpperCase() + ':';
+                Array.from(seenByUid.keys()).forEach((uid) => { if (uid.startsWith(prefix)) seenByUid.delete(uid); });
+                Object.keys(localSeen).forEach((uid) => { if (uid.startsWith(prefix)) delete localSeen[uid]; });
+                persistLocalSeen();
+                recount();
+            }
+
             function connectStream() {
                 try {
                     const stream = new EventSource(portalBase + '/events');
                     stream.addEventListener('communication-event', (event) => {
                         try { ingest(JSON.parse(event.data), true); } catch (_) { }
+                    });
+                    stream.addEventListener('channel-cleared', (event) => {
+                        try { forgetChannel(JSON.parse(event.data).channel); } catch (_) { }
                     });
                 } catch (_) { }
             }
@@ -630,8 +641,6 @@
                                     this.markSeen(match.id);
                                 }
                                 this.scrollToBottom();
-                            } else {
-                                this.loadPreset('audit_text');
                             }
                         });
 
@@ -646,6 +655,7 @@
                             this.scrollToBottom();
                         } catch (err) { }
                     });
+                    evtSource.addEventListener('telegram-cleared', () => this.applyServerClear());
                     this.startBackgroundSync();
                 },
                 scrollToBottom() {
@@ -830,8 +840,13 @@
                         }
                     });
                 },
+                applyServerClear() {
+                    this.records = [];
+                    this.selectedRecord = null;
+                },
+
                 clearSession() {
-                    fetch('/api/v1/telegram/clear?sessionId=' + encodeURIComponent(this.sessionId), { method: 'POST' })
+                    fetch('/api/v1/telegram/clear?all=1', { method: 'POST' })
                         .then(() => {
                             this.records = [];
                             this.selectedRecord = null;
