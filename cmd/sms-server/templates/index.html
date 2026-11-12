@@ -117,13 +117,16 @@
                         </div>
 
                         <template x-for="sms in messages" :key="sms.id">
-                            <div @click="selectedSMSId = sms.id" class="flex flex-col items-end group cursor-pointer">
+                            <div @click="selectedSMSId = sms.id; markSeen(sms.id)" class="flex flex-col items-end group cursor-pointer"
+                                :class="isSeen(sms.id) ? 'opacity-75' : ''">
                                 <div class="max-w-[85%] rounded-2xl rounded-br-sm px-3.5 py-2.5 text-xs shadow-sm transition transform group-hover:scale-[1.01]"
                                     :class="selectedSMSId === sms.id ? 'bg-sky-600 text-white ring-2 ring-offset-2 ring-sky-500 dark:ring-offset-slate-950' : 'bg-sky-500 text-white'">
                                     <p class="whitespace-pre-wrap break-words leading-relaxed" x-text="sms.message"></p>
                                 </div>
                                 <div
                                     class="mt-1 flex items-center gap-1.5 text-[10px] font-mono text-slate-500 dark:text-slate-400">
+                                    <template x-if="isUnread(sms.id)"><span class="h-2 w-2 rounded-full bg-sky-400" title="Unread"></span></template>
+                                    <template x-if="isSeen(sms.id)"><span class="font-semibold">&#10003; Seen &bull;</span></template>
                                     <span x-text="sms.report.encoding"></span>
                                     <span>&bull;</span>
                                     <span
@@ -253,9 +256,6 @@
         </section>
     </main>
 
-    <div class="hidden" hx-ext="sse" sse-connect="/events" sse-swap="sms-evaluated"
-        @htmx:sse-message.camel="onSSEMessage()"></div>
-
     <div x-show="showLauncher" x-cloak
         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4"
         @keydown.escape.window="showLauncher = false">
@@ -328,6 +328,140 @@
     </div>
 
     <script>
+        window.SanndboxSync = (function () {
+            const portalBase = window.location.protocol + '//' + window.location.hostname + ':9080';
+            const baseTitle = document.title;
+            const listeners = new Set();
+            let seenByUid = new Map();
+            let unreadCount = 0;
+            let started = false;
+            let audioContext = null;
+            let lastChimeAt = 0;
+
+            function uidOf(channel, id) {
+                return String(channel).toUpperCase() + ':' + id;
+            }
+
+            function recount() {
+                let total = 0;
+                seenByUid.forEach((isSeen) => { if (!isSeen) total++; });
+                unreadCount = total;
+                document.title = total > 0 ? '(' + total + ') ' + baseTitle : baseTitle;
+                listeners.forEach((listener) => { try { listener(total); } catch (_) { } });
+            }
+
+            function unlockAudio() {
+                try {
+                    const AudioCtor = window.AudioContext || window.webkitAudioContext;
+                    if (!AudioCtor) return;
+                    audioContext = audioContext || new AudioCtor();
+                    if (audioContext.state === 'suspended') audioContext.resume();
+                } catch (_) { }
+            }
+
+            function playChime() {
+                const now = Date.now();
+                if (now - lastChimeAt < 400) return;
+                lastChimeAt = now;
+                try {
+                    unlockAudio();
+                    if (!audioContext || audioContext.state !== 'running') return;
+                    [880, 1318.5].forEach((frequency, index) => {
+                        const oscillator = audioContext.createOscillator();
+                        const gain = audioContext.createGain();
+                        const startAt = audioContext.currentTime + index * 0.12;
+                        oscillator.type = 'sine';
+                        oscillator.frequency.value = frequency;
+                        gain.gain.setValueAtTime(0.0001, startAt);
+                        gain.gain.exponentialRampToValueAtTime(0.18, startAt + 0.02);
+                        gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.25);
+                        oscillator.connect(gain);
+                        gain.connect(audioContext.destination);
+                        oscillator.start(startAt);
+                        oscillator.stop(startAt + 0.26);
+                    });
+                } catch (_) { }
+            }
+
+            function ingest(item, notify) {
+                if (!item || !item.uid) return;
+                const previous = seenByUid.get(item.uid);
+                const isSeen = !!item.seen || previous === true;
+                seenByUid.set(item.uid, isSeen);
+                recount();
+                if (notify && previous === undefined && !isSeen) playChime();
+            }
+
+            async function resync(notify) {
+                try {
+                    const response = await fetch(portalBase + '/api/v1/feed');
+                    if (!response.ok) return;
+                    const snapshot = await response.json();
+                    const previousMap = seenByUid;
+                    const nextMap = new Map();
+                    let hasNewUnread = false;
+                    (snapshot.items || []).forEach((item) => {
+                        const wasSeen = previousMap.get(item.uid);
+                        const isSeen = !!item.seen || wasSeen === true;
+                        nextMap.set(item.uid, isSeen);
+                        if (notify && wasSeen === undefined && !isSeen) hasNewUnread = true;
+                    });
+                    seenByUid = nextMap;
+                    recount();
+                    if (hasNewUnread) playChime();
+                } catch (_) { }
+            }
+
+            function connectStream() {
+                try {
+                    const stream = new EventSource(portalBase + '/events');
+                    stream.addEventListener('communication-event', (event) => {
+                        try { ingest(JSON.parse(event.data), true); } catch (_) { }
+                    });
+                } catch (_) { }
+            }
+
+            function start(options) {
+                if (options && options.onChange) listeners.add(options.onChange);
+                if (started) return;
+                started = true;
+                ['pointerdown', 'keydown', 'touchstart'].forEach((type) => {
+                    window.addEventListener(type, unlockAudio, { once: true, passive: true });
+                });
+                resync(false);
+                connectStream();
+                setInterval(() => resync(true), 15000);
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'visible') resync(true);
+                });
+            }
+
+            function markSeen(channel, id) {
+                const uid = uidOf(channel, id);
+                if (seenByUid.get(uid) === true) return;
+                seenByUid.set(uid, true);
+                recount();
+                try {
+                    fetch(portalBase + '/api/v1/seen', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ uid: uid }),
+                        keepalive: true
+                    }).catch(() => { });
+                } catch (_) { }
+            }
+
+            return {
+                start: start,
+                markSeen: markSeen,
+                isUnread: (channel, id) => seenByUid.get(uidOf(channel, id)) === false,
+                isSeen: (channel, id) => seenByUid.get(uidOf(channel, id)) === true,
+                unreadTotal: () => unreadCount
+            };
+        })();
+    </script>
+
+    <script>
         function phoneSMSApp() {
             return {
                 themeMode: 'system',
@@ -356,15 +490,39 @@
                         if (this.themeMode === 'system') this.applyThemeClass('system');
                     });
 
+                    const targetId = new URLSearchParams(window.location.search).get('id');
                     const savedList = sessionStorage.getItem('sms_Sanndbox_items');
                     if (savedList) {
                         try {
                             this.messages = JSON.parse(savedList);
                             if (this.messages.length > 0) this.selectedSMSId = this.messages[this.messages.length - 1].id;
                         } catch (_) { }
-                    } else {
-                        this.sendPreset('gsm7_single');
                     }
+
+                    fetch('/api/v1/sms?sessionId=' + encodeURIComponent(this.sessionId))
+                        .then(r => r.json())
+                        .then(serverList => {
+                            if (Array.isArray(serverList) && serverList.length > 0) {
+                                serverList.slice().reverse().forEach(item => {
+                                    if (!this.messages.some(m => m.id === item.id)) {
+                                        this.messages.push(item);
+                                    }
+                                });
+                                this.persistMessages();
+                            } else if (this.messages.length === 0) {
+                                this.sendPreset('gsm7_single');
+                            }
+                            if (targetId && this.messages.some(m => m.id === targetId)) {
+                                this.selectedSMSId = targetId;
+                                this.markSeen(targetId);
+                            } else if (!this.selectedSMSId && this.messages.length > 0) {
+                                this.selectedSMSId = this.messages[this.messages.length - 1].id;
+                            }
+                            this.scrollToBottom();
+                        })
+                        .catch(() => {
+                            if (this.messages.length === 0) this.sendPreset('gsm7_single');
+                        });
 
                     const sse = new EventSource('/events?sessionId=' + encodeURIComponent(this.sessionId));
                     sse.addEventListener('sms-evaluated', (event) => {
@@ -379,12 +537,8 @@
                         } catch (_) { }
                     });
 
-                    window.addEventListener('pagehide', (e) => {
-                        if (!e.persisted) {
-                            sse.close();
-                            navigator.sendBeacon('/api/v1/sms/clear?sessionId=' + encodeURIComponent(this.sessionId));
-                        }
-                    });
+
+                    this.startBackgroundSync();
                 },
 
                 serviceUrl(port) {
@@ -431,20 +585,48 @@
                     }, 50);
                 },
 
-                async onSSEMessage() {
-                    const res = await fetch('/api/v1/sms?sessionId=' + encodeURIComponent(this.sessionId));
-                    if (res.ok) {
-                        const list = await res.json();
-                        if (Array.isArray(list) && list.length > 0) {
-                            const latest = list[0];
-                            if (!this.messages.some(m => m.id === latest.id)) {
-                                this.messages.push(latest);
-                                this.selectedSMSId = latest.id;
-                                this.persistMessages();
-                                this.scrollToBottom();
+                syncTick: 0,
+
+                isUnread(id) {
+                    void this.syncTick;
+                    return SanndboxSync.isUnread('SMS', id);
+                },
+
+                isSeen(id) {
+                    void this.syncTick;
+                    return SanndboxSync.isSeen('SMS', id);
+                },
+
+                markSeen(id) {
+                    SanndboxSync.markSeen('SMS', id);
+                },
+
+                startBackgroundSync() {
+                    SanndboxSync.start({ onChange: () => { this.syncTick++; } });
+                    document.addEventListener('visibilitychange', () => {
+                        if (document.visibilityState === 'visible') this.syncFromServer();
+                    });
+                    setInterval(() => this.syncFromServer(), 15000);
+                },
+
+                async syncFromServer() {
+                    try {
+                        const response = await fetch('/api/v1/sms?sessionId=' + encodeURIComponent(this.sessionId));
+                        if (!response.ok) return;
+                        const serverList = await response.json();
+                        if (!Array.isArray(serverList)) return;
+                        let added = false;
+                        serverList.slice().reverse().forEach(item => {
+                            if (!this.messages.some(m => m.id === item.id)) {
+                                this.messages.push(item);
+                                added = true;
                             }
+                        });
+                        if (added) {
+                            this.persistMessages();
+                            this.scrollToBottom();
                         }
-                    }
+                    } catch (_) { }
                 },
 
                 clearTabCache() {
