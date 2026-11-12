@@ -1,812 +1,865 @@
 {
-	"swagger": "2.0",
-	"info": {
-		"description": "Meta WhatsApp Business Platform Sanndbox (:9083) modeled after fbsamples/whatsapp-business-jaspers-market/services. Implements Graph API /{apiVersion}/{phoneNumberId}/messages, /{wabaId}/message_templates, /{phoneNumberId}/media, /webhook (GET verify + POST X-Hub-Signature-256), entry_source_attributed telemetry, 15s status follow-up cache, WABA Setup \u0026 .env generator, and Template Studio.",
-		"title": "WhatsApp Business Cloud API \u0026 Jasper's Market Sanndbox",
-		"contact": {},
-		"version": "2.0.0"
-	},
-	"basePath": "/",
-	"paths": {
-		"/": {
-			"get": {
-				"produces": ["text/html"],
-				"summary": "Render WhatsApp Business \u0026 Jasper's Market Sanndbox UI",
-				"responses": {
-					"200": {
-						"description": "HTML Dashboard",
-						"schema": {
-							"type": "string"
-						}
-					}
-				}
-			}
-		},
-		"/api/v1/whatsapp": {
-			"get": {
-				"produces": ["application/json"],
-				"summary": "List evaluated WhatsApp records",
-				"parameters": [
-					{
-						"type": "string",
-						"description": "Browser Tab Session ID",
-						"name": "sessionId",
-						"in": "query"
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "OK",
-						"schema": {
-							"type": "array",
-							"items": {
-								"$ref": "#/definitions/main.IMRecord"
-							}
-						}
-					}
-				}
-			},
-			"post": {
-				"consumes": ["application/json"],
-				"produces": ["application/json"],
-				"summary": "Submit WhatsApp payload for Cloud API constraint evaluation",
-				"parameters": [
-					{
-						"description": "WhatsApp Submission Payload",
-						"name": "payload",
-						"in": "body",
-						"required": true,
-						"schema": {
-							"$ref": "#/definitions/main.IMSubmissionRequest"
-						}
-					}
-				],
-				"responses": {
-					"201": {
-						"description": "Created",
-						"schema": {
-							"$ref": "#/definitions/main.IMRecord"
-						}
-					}
-				}
-			}
-		},
-		"/api/v1/whatsapp/clear": {
-			"post": {
-				"summary": "Clear session-scoped WhatsApp cache",
-				"parameters": [
-					{
-						"type": "string",
-						"description": "Browser Tab Session ID",
-						"name": "sessionId",
-						"in": "query",
-						"required": true
-					}
-				],
-				"responses": {
-					"204": {
-						"description": "Cleared",
-						"schema": {
-							"type": "string"
-						}
-					}
-				}
-			}
-		},
-		"/api/v1/whatsapp/config": {
-			"get": {
-				"produces": ["application/json"],
-				"summary": "Get WABA Setup Configuration \u0026 .env status",
-				"responses": {
-					"200": {
-						"description": "OK",
-						"schema": {
-							"$ref": "#/definitions/main.WABASanndboxConfig"
-						}
-					}
-				}
-			},
-			"post": {
-				"consumes": ["application/json"],
-				"produces": ["application/json"],
-				"summary": "Update WABA Setup Configuration \u0026 validate media IDs",
-				"responses": {
-					"200": {
-						"description": "OK",
-						"schema": {
-							"$ref": "#/definitions/main.WABASanndboxConfig"
-						}
-					}
-				}
-			}
-		},
-		"/api/v1/whatsapp/interact": {
-			"post": {
-				"consumes": ["application/json"],
-				"produces": ["application/json"],
-				"summary": "Trigger Jasper's Market Conversation Bot flow or Status Receipt",
-				"responses": {
-					"200": {
-						"description": "OK",
-						"schema": {
-							"type": "array",
-							"items": {
-								"$ref": "#/definitions/main.IMRecord"
-							}
-						}
-					}
-				}
-			}
-		},
-		"/api/v1/whatsapp/media": {
-			"post": {
-				"consumes": ["application/json"],
-				"produces": ["application/json"],
-				"summary": "Upload runtime media and generate phone-scoped Media ID",
-				"responses": {
-					"201": {
-						"description": "Created",
-						"schema": {
-							"$ref": "#/definitions/main.WABAMediaRecord"
-						}
-					}
-				}
-			}
-		},
-		"/api/v1/whatsapp/templates": {
-			"get": {
-				"produces": ["application/json"],
-				"summary": "List WABA Message Templates (Jasper's Market + Custom)",
-				"responses": {
-					"200": {
-						"description": "OK",
-						"schema": {
-							"type": "array",
-							"items": {
-								"$ref": "#/definitions/main.WABATemplateDefinition"
-							}
-						}
-					}
-				}
-			},
-			"post": {
-				"consumes": ["application/json"],
-				"produces": ["application/json"],
-				"summary": "Create WABA Message Template (/{apiVersion}/{wabaId}/message_templates)",
-				"responses": {
-					"201": {
-						"description": "Created",
-						"schema": {
-							"$ref": "#/definitions/main.WABATemplateDefinition"
-						}
-					}
-				}
-			}
-		},
-		"/docs": {
-			"get": {
-				"produces": ["text/html"],
-				"summary": "Interactive OpenAPI 3.0 Documentation",
-				"responses": {
-					"200": {
-						"description": "Swagger UI HTML",
-						"schema": {
-							"type": "string"
-						}
-					}
-				}
-			}
-		},
-		"/events": {
-			"get": {
-				"produces": ["text/event-stream"],
-				"summary": "Real-time HTMX SSE stream",
-				"parameters": [
-					{
-						"type": "string",
-						"description": "Browser Tab Session ID",
-						"name": "sessionId",
-						"in": "query"
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "SSE Stream",
-						"schema": {
-							"type": "string"
-						}
-					}
-				}
-			}
-		},
-		"/webhook": {
-			"get": {
-				"summary": "Verify WhatsApp Webhook Subscription (hub.verify_token \u0026 hub.challenge)",
-				"parameters": [
-					{
-						"type": "string",
-						"description": "Must be subscribe",
-						"name": "hub.mode",
-						"in": "query",
-						"required": true
-					},
-					{
-						"type": "string",
-						"description": "Verify Token configured in Setup",
-						"name": "hub.verify_token",
-						"in": "query",
-						"required": true
-					},
-					{
-						"type": "string",
-						"description": "Challenge nonce echoed back on 200 OK",
-						"name": "hub.challenge",
-						"in": "query",
-						"required": true
-					}
-				],
-				"responses": {
-					"200": {
-						"description": "hub.challenge",
-						"schema": {
-							"type": "string"
-						}
-					}
-				}
-			},
-			"post": {
-				"consumes": ["application/json"],
-				"produces": ["text/plain"],
-				"summary": "Receive WhatsApp Cloud API Webhook events (messages \u0026 statuses)",
-				"responses": {
-					"200": {
-						"description": "EVENT_RECEIVED",
-						"schema": {
-							"type": "string"
-						}
-					}
-				}
-			}
-		},
-		"/{apiVersion}/{phoneNumberId}/messages": {
-			"post": {
-				"consumes": ["application/json"],
-				"produces": ["application/json"],
-				"summary": "Graph API Send Message endpoint (/{apiVersion}/{phoneNumberId}/messages)",
-				"responses": {
-					"200": {
-						"description": "OK",
-						"schema": {
-							"type": "object",
-							"additionalProperties": true
-						}
-					}
-				}
-			}
-		}
-	},
-	"definitions": {
-		"main.AttributionEvent": {
-			"type": "object",
-			"properties": {
-				"event_name": {
-					"type": "string"
-				},
-				"event_timestamp": {
-					"type": "string"
-				},
-				"inbound_message_id": {
-					"type": "string"
-				},
-				"receiver_phone_number_id": {
-					"type": "string"
-				},
-				"schema_version": {
-					"type": "integer"
-				},
-				"source_surface": {
-					"type": "string"
-				},
-				"webhook_delivery_count": {
-					"type": "integer"
-				}
-			}
-		},
-		"main.EvaluationCriterion": {
-			"type": "object",
-			"properties": {
-				"category": {
-					"type": "string"
-				},
-				"details": {
-					"type": "string"
-				},
-				"status": {
-					"$ref": "#/definitions/main.EvaluationStatus"
-				},
-				"target": {
-					"type": "string"
-				}
-			}
-		},
-		"main.EvaluationStatus": {
-			"type": "string",
-			"enum": ["PASS", "WARN", "FAIL"],
-			"x-enum-varnames": ["StatusPass", "StatusWarn", "StatusFail"]
-		},
-		"main.IMEvaluationReport": {
-			"type": "object",
-			"properties": {
-				"characterCount": {
-					"type": "integer"
-				},
-				"criteria": {
-					"type": "array",
-					"items": {
-						"$ref": "#/definitions/main.EvaluationCriterion"
-					}
-				},
-				"eventType": {
-					"type": "string"
-				},
-				"overallStatus": {
-					"$ref": "#/definitions/main.EvaluationStatus"
-				}
-			}
-		},
-		"main.IMMediaAttachment": {
-			"type": "object",
-			"properties": {
-				"filename": {
-					"type": "string"
-				},
-				"id": {
-					"type": "string"
-				},
-				"mimeType": {
-					"type": "string"
-				},
-				"previewUrl": {
-					"type": "string"
-				},
-				"sizeBytes": {
-					"type": "integer"
-				}
-			}
-		},
-		"main.IMRecord": {
-			"type": "object",
-			"properties": {
-				"attribution": {
-					"$ref": "#/definitions/main.AttributionEvent"
-				},
-				"caseKey": {
-					"type": "string"
-				},
-				"deliveryStatus": {
-					"type": "string"
-				},
-				"direction": {
-					"type": "string"
-				},
-				"eventType": {
-					"type": "string"
-				},
-				"followUpArmed": {
-					"type": "boolean"
-				},
-				"id": {
-					"type": "string"
-				},
-				"interactiveButtons": {
-					"type": "array",
-					"items": {
-						"$ref": "#/definitions/main.InteractiveReplyButton"
-					}
-				},
-				"media": {
-					"$ref": "#/definitions/main.IMMediaAttachment"
-				},
-				"platform": {
-					"type": "string"
-				},
-				"rawGraphPayload": {
-					"type": "string"
-				},
-				"recipient": {
-					"type": "string"
-				},
-				"report": {
-					"$ref": "#/definitions/main.IMEvaluationReport"
-				},
-				"sender": {
-					"type": "string"
-				},
-				"sessionId": {
-					"type": "string"
-				},
-				"source": {
-					"type": "string"
-				},
-				"templatePreview": {
-					"$ref": "#/definitions/main.TemplatePreviewData"
-				},
-				"text": {
-					"type": "string"
-				},
-				"timestamp": {
-					"type": "string"
-				},
-				"wamid": {
-					"type": "string"
-				}
-			}
-		},
-		"main.IMSubmissionRequest": {
-			"type": "object",
-			"properties": {
-				"attribution": {
-					"$ref": "#/definitions/main.AttributionEvent"
-				},
-				"caseKey": {
-					"type": "string"
-				},
-				"direction": {
-					"type": "string"
-				},
-				"eventType": {
-					"type": "string"
-				},
-				"interactiveButtons": {
-					"type": "array",
-					"items": {
-						"$ref": "#/definitions/main.InteractiveReplyButton"
-					}
-				},
-				"media": {
-					"$ref": "#/definitions/main.IMMediaAttachment"
-				},
-				"platform": {
-					"type": "string"
-				},
-				"rawGraphPayload": {
-					"type": "string"
-				},
-				"recipient": {
-					"type": "string"
-				},
-				"sender": {
-					"type": "string"
-				},
-				"sessionId": {
-					"type": "string"
-				},
-				"signatureStatus": {
-					"type": "string"
-				},
-				"templatePreview": {
-					"$ref": "#/definitions/main.TemplatePreviewData"
-				},
-				"text": {
-					"type": "string"
-				}
-			}
-		},
-		"main.InteractiveReplyButton": {
-			"type": "object",
-			"properties": {
-				"id": {
-					"type": "string"
-				},
-				"title": {
-					"type": "string"
-				}
-			}
-		},
-		"main.TemplateCarouselCard": {
-			"type": "object",
-			"properties": {
-				"bodyText": {
-					"type": "string"
-				},
-				"buttonCta": {
-					"type": "string"
-				},
-				"buttonUrl": {
-					"type": "string"
-				},
-				"cardIndex": {
-					"type": "integer"
-				},
-				"imageId": {
-					"type": "string"
-				},
-				"previewUrl": {
-					"type": "string"
-				}
-			}
-		},
-		"main.TemplatePreviewData": {
-			"type": "object",
-			"properties": {
-				"addSecurityRecommendation": {
-					"type": "boolean"
-				},
-				"autofillText": {
-					"type": "string"
-				},
-				"bodyParams": {
-					"type": "array",
-					"items": {
-						"type": "string"
-					}
-				},
-				"bodyText": {
-					"type": "string"
-				},
-				"buttonCta": {
-					"type": "string"
-				},
-				"buttonUrl": {
-					"type": "string"
-				},
-				"carouselCards": {
-					"type": "array",
-					"items": {
-						"$ref": "#/definitions/main.TemplateCarouselCard"
-					}
-				},
-				"category": {
-					"type": "string"
-				},
-				"codeExpirationMinutes": {
-					"type": "integer"
-				},
-				"documentFilename": {
-					"type": "string"
-				},
-				"expirationMs": {
-					"type": "integer"
-				},
-				"footerText": {
-					"type": "string"
-				},
-				"headerFormat": {
-					"type": "string"
-				},
-				"headerMediaId": {
-					"type": "string"
-				},
-				"headerPreviewUrl": {
-					"type": "string"
-				},
-				"headerText": {
-					"type": "string"
-				},
-				"isLto": {
-					"type": "boolean"
-				},
-				"language": {
-					"type": "string"
-				},
-				"ltoText": {
-					"type": "string"
-				},
-				"name": {
-					"type": "string"
-				},
-				"offerCode": {
-					"type": "string"
-				},
-				"otpCode": {
-					"type": "string"
-				},
-				"otpType": {
-					"type": "string"
-				},
-				"packageName": {
-					"type": "string"
-				},
-				"quickReplyButtons": {
-					"type": "array",
-					"items": {
-						"type": "string"
-					}
-				},
-				"signatureHash": {
-					"type": "string"
-				}
-			}
-		},
-		"main.WABAMediaRecord": {
-			"type": "object",
-			"properties": {
-				"envKey": {
-					"type": "string"
-				},
-				"expiresAt": {
-					"type": "string"
-				},
-				"filename": {
-					"type": "string"
-				},
-				"mediaId": {
-					"type": "string"
-				},
-				"mimeType": {
-					"type": "string"
-				},
-				"phoneNumberId": {
-					"type": "string"
-				},
-				"previewUrl": {
-					"type": "string"
-				},
-				"sizeBytes": {
-					"type": "integer"
-				},
-				"uploadHandle": {
-					"type": "string"
-				}
-			}
-		},
-		"main.WABASanndboxConfig": {
-			"type": "object",
-			"properties": {
-				"accessToken": {
-					"type": "string"
-				},
-				"apiVersion": {
-					"type": "string"
-				},
-				"appId": {
-					"type": "string"
-				},
-				"appSecret": {
-					"type": "string"
-				},
-				"envFilePreview": {
-					"type": "string"
-				},
-				"graphBaseUrl": {
-					"type": "string"
-				},
-				"groceriesMediaId": {
-					"type": "string"
-				},
-				"isReady": {
-					"type": "boolean"
-				},
-				"mediaAssets": {
-					"type": "array",
-					"items": {
-						"$ref": "#/definitions/main.WABAMediaRecord"
-					}
-				},
-				"phoneNumberId": {
-					"type": "string"
-				},
-				"saladBowlMediaId": {
-					"type": "string"
-				},
-				"sheetPanDinnerMediaId": {
-					"type": "string"
-				},
-				"strawberriesMediaId": {
-					"type": "string"
-				},
-				"templateScriptPreview": {
-					"type": "string"
-				},
-				"validationErrors": {
-					"type": "array",
-					"items": {
-						"type": "string"
-					}
-				},
-				"verifyToken": {
-					"type": "string"
-				},
-				"wabaId": {
-					"type": "string"
-				}
-			}
-		},
-		"main.WABATemplateDefinition": {
-			"type": "object",
-			"properties": {
-				"addSecurityRecommendation": {
-					"type": "boolean"
-				},
-				"autofillText": {
-					"type": "string"
-				},
-				"bodyParams": {
-					"type": "array",
-					"items": {
-						"type": "string"
-					}
-				},
-				"bodyText": {
-					"type": "string"
-				},
-				"buttonCta": {
-					"type": "string"
-				},
-				"buttonUrl": {
-					"type": "string"
-				},
-				"carouselCards": {
-					"type": "array",
-					"items": {
-						"$ref": "#/definitions/main.TemplateCarouselCard"
-					}
-				},
-				"category": {
-					"type": "string"
-				},
-				"codeExpirationMinutes": {
-					"type": "integer"
-				},
-				"documentFilename": {
-					"type": "string"
-				},
-				"footerText": {
-					"type": "string"
-				},
-				"headerFormat": {
-					"type": "string"
-				},
-				"headerMediaId": {
-					"type": "string"
-				},
-				"headerPreviewUrl": {
-					"type": "string"
-				},
-				"headerText": {
-					"type": "string"
-				},
-				"id": {
-					"type": "string"
-				},
-				"isLto": {
-					"type": "boolean"
-				},
-				"language": {
-					"type": "string"
-				},
-				"ltoText": {
-					"type": "string"
-				},
-				"name": {
-					"type": "string"
-				},
-				"offerCode": {
-					"type": "string"
-				},
-				"otpCode": {
-					"type": "string"
-				},
-				"otpType": {
-					"type": "string"
-				},
-				"packageName": {
-					"type": "string"
-				},
-				"quickReplyButtons": {
-					"type": "array",
-					"items": {
-						"type": "string"
-					}
-				},
-				"rawComponents": {},
-				"signatureHash": {
-					"type": "string"
-				},
-				"status": {
-					"type": "string"
-				}
-			}
-		}
-	}
+    "swagger": "2.0",
+    "info": {
+        "description": "Meta WhatsApp Business Platform Sanndbox (:9083) modeled after fbsamples/whatsapp-business-jaspers-market/services. Implements Graph API /{apiVersion}/{phoneNumberId}/messages, /{wabaId}/message_templates, /{phoneNumberId}/media, /webhook (GET verify + POST X-Hub-Signature-256), entry_source_attributed telemetry, 15s status follow-up cache, WABA Setup \u0026 .env generator, and Template Studio.",
+        "title": "WhatsApp Business Cloud API \u0026 Jasper's Market Sanndbox",
+        "contact": {},
+        "version": "2.0.0"
+    },
+    "basePath": "/",
+    "paths": {
+        "/": {
+            "get": {
+                "produces": [
+                    "text/html"
+                ],
+                "summary": "Render WhatsApp Business \u0026 Jasper's Market Sanndbox UI",
+                "responses": {
+                    "200": {
+                        "description": "HTML Dashboard",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/whatsapp": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "List evaluated WhatsApp records",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Browser Tab Session ID",
+                        "name": "sessionId",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/main.IMRecord"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Submit WhatsApp payload for Cloud API constraint evaluation",
+                "parameters": [
+                    {
+                        "description": "WhatsApp Submission Payload",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/main.IMSubmissionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/main.IMRecord"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/whatsapp/clear": {
+            "post": {
+                "summary": "Clear cached WhatsApp messages",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Browser Tab Session ID",
+                        "name": "sessionId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Delete every message on this channel",
+                        "name": "all",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Cleared",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/whatsapp/config": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Get WABA Setup Configuration \u0026 .env status",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/main.WABASanndboxConfig"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Update WABA Setup Configuration \u0026 validate media IDs",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/main.WABASanndboxConfig"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/whatsapp/interact": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Trigger Jasper's Market Conversation Bot flow or Status Receipt",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/main.IMRecord"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/whatsapp/media": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Upload runtime media and generate phone-scoped Media ID",
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/main.WABAMediaRecord"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/whatsapp/templates": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "List WABA Message Templates (Jasper's Market + Custom)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/main.WABATemplateDefinition"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Create WABA Message Template (/{apiVersion}/{wabaId}/message_templates)",
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/main.WABATemplateDefinition"
+                        }
+                    }
+                }
+            }
+        },
+        "/docs": {
+            "get": {
+                "produces": [
+                    "text/html"
+                ],
+                "summary": "Interactive OpenAPI 3.0 Documentation",
+                "responses": {
+                    "200": {
+                        "description": "Swagger UI HTML",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/events": {
+            "get": {
+                "produces": [
+                    "text/event-stream"
+                ],
+                "summary": "Real-time HTMX SSE stream",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Browser Tab Session ID",
+                        "name": "sessionId",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "SSE Stream",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/webhook": {
+            "get": {
+                "summary": "Verify WhatsApp Webhook Subscription (hub.verify_token \u0026 hub.challenge)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Must be subscribe",
+                        "name": "hub.mode",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Verify Token configured in Setup",
+                        "name": "hub.verify_token",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Challenge nonce echoed back on 200 OK",
+                        "name": "hub.challenge",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "hub.challenge",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "text/plain"
+                ],
+                "summary": "Receive WhatsApp Cloud API Webhook events (messages \u0026 statuses)",
+                "responses": {
+                    "200": {
+                        "description": "EVENT_RECEIVED",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/{apiVersion}/{phoneNumberId}/messages": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Graph API Send Message endpoint (/{apiVersion}/{phoneNumberId}/messages)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "main.AttributionEvent": {
+            "type": "object",
+            "properties": {
+                "event_name": {
+                    "type": "string"
+                },
+                "event_timestamp": {
+                    "type": "string"
+                },
+                "inbound_message_id": {
+                    "type": "string"
+                },
+                "receiver_phone_number_id": {
+                    "type": "string"
+                },
+                "schema_version": {
+                    "type": "integer"
+                },
+                "source_surface": {
+                    "type": "string"
+                },
+                "webhook_delivery_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "main.EvaluationCriterion": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "details": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/main.EvaluationStatus"
+                },
+                "target": {
+                    "type": "string"
+                }
+            }
+        },
+        "main.EvaluationStatus": {
+            "type": "string",
+            "enum": [
+                "PASS",
+                "WARN",
+                "FAIL"
+            ],
+            "x-enum-varnames": [
+                "StatusPass",
+                "StatusWarn",
+                "StatusFail"
+            ]
+        },
+        "main.IMEvaluationReport": {
+            "type": "object",
+            "properties": {
+                "characterCount": {
+                    "type": "integer"
+                },
+                "criteria": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/main.EvaluationCriterion"
+                    }
+                },
+                "eventType": {
+                    "type": "string"
+                },
+                "overallStatus": {
+                    "$ref": "#/definitions/main.EvaluationStatus"
+                }
+            }
+        },
+        "main.IMMediaAttachment": {
+            "type": "object",
+            "properties": {
+                "filename": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "mimeType": {
+                    "type": "string"
+                },
+                "previewUrl": {
+                    "type": "string"
+                },
+                "sizeBytes": {
+                    "type": "integer"
+                }
+            }
+        },
+        "main.IMRecord": {
+            "type": "object",
+            "properties": {
+                "attribution": {
+                    "$ref": "#/definitions/main.AttributionEvent"
+                },
+                "caseKey": {
+                    "type": "string"
+                },
+                "deliveryStatus": {
+                    "type": "string"
+                },
+                "direction": {
+                    "type": "string"
+                },
+                "eventType": {
+                    "type": "string"
+                },
+                "followUpArmed": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "interactiveButtons": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/main.InteractiveReplyButton"
+                    }
+                },
+                "media": {
+                    "$ref": "#/definitions/main.IMMediaAttachment"
+                },
+                "platform": {
+                    "type": "string"
+                },
+                "rawGraphPayload": {
+                    "type": "string"
+                },
+                "recipient": {
+                    "type": "string"
+                },
+                "report": {
+                    "$ref": "#/definitions/main.IMEvaluationReport"
+                },
+                "sender": {
+                    "type": "string"
+                },
+                "sessionId": {
+                    "type": "string"
+                },
+                "source": {
+                    "type": "string"
+                },
+                "templatePreview": {
+                    "$ref": "#/definitions/main.TemplatePreviewData"
+                },
+                "text": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "string"
+                },
+                "wamid": {
+                    "type": "string"
+                }
+            }
+        },
+        "main.IMSubmissionRequest": {
+            "type": "object",
+            "properties": {
+                "attribution": {
+                    "$ref": "#/definitions/main.AttributionEvent"
+                },
+                "caseKey": {
+                    "type": "string"
+                },
+                "direction": {
+                    "type": "string"
+                },
+                "eventType": {
+                    "type": "string"
+                },
+                "interactiveButtons": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/main.InteractiveReplyButton"
+                    }
+                },
+                "media": {
+                    "$ref": "#/definitions/main.IMMediaAttachment"
+                },
+                "platform": {
+                    "type": "string"
+                },
+                "rawGraphPayload": {
+                    "type": "string"
+                },
+                "recipient": {
+                    "type": "string"
+                },
+                "sender": {
+                    "type": "string"
+                },
+                "sessionId": {
+                    "type": "string"
+                },
+                "signatureStatus": {
+                    "type": "string"
+                },
+                "templatePreview": {
+                    "$ref": "#/definitions/main.TemplatePreviewData"
+                },
+                "text": {
+                    "type": "string"
+                }
+            }
+        },
+        "main.InteractiveReplyButton": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "main.TemplateCarouselCard": {
+            "type": "object",
+            "properties": {
+                "bodyText": {
+                    "type": "string"
+                },
+                "buttonCta": {
+                    "type": "string"
+                },
+                "buttonUrl": {
+                    "type": "string"
+                },
+                "cardIndex": {
+                    "type": "integer"
+                },
+                "imageId": {
+                    "type": "string"
+                },
+                "previewUrl": {
+                    "type": "string"
+                }
+            }
+        },
+        "main.TemplatePreviewData": {
+            "type": "object",
+            "properties": {
+                "addSecurityRecommendation": {
+                    "type": "boolean"
+                },
+                "autofillText": {
+                    "type": "string"
+                },
+                "bodyParams": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "bodyText": {
+                    "type": "string"
+                },
+                "buttonCta": {
+                    "type": "string"
+                },
+                "buttonUrl": {
+                    "type": "string"
+                },
+                "carouselCards": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/main.TemplateCarouselCard"
+                    }
+                },
+                "category": {
+                    "type": "string"
+                },
+                "codeExpirationMinutes": {
+                    "type": "integer"
+                },
+                "documentFilename": {
+                    "type": "string"
+                },
+                "expirationMs": {
+                    "type": "integer"
+                },
+                "footerText": {
+                    "type": "string"
+                },
+                "headerFormat": {
+                    "type": "string"
+                },
+                "headerMediaId": {
+                    "type": "string"
+                },
+                "headerPreviewUrl": {
+                    "type": "string"
+                },
+                "headerText": {
+                    "type": "string"
+                },
+                "isLto": {
+                    "type": "boolean"
+                },
+                "language": {
+                    "type": "string"
+                },
+                "ltoText": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "offerCode": {
+                    "type": "string"
+                },
+                "otpCode": {
+                    "type": "string"
+                },
+                "otpType": {
+                    "type": "string"
+                },
+                "packageName": {
+                    "type": "string"
+                },
+                "quickReplyButtons": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "signatureHash": {
+                    "type": "string"
+                }
+            }
+        },
+        "main.WABAMediaRecord": {
+            "type": "object",
+            "properties": {
+                "envKey": {
+                    "type": "string"
+                },
+                "expiresAt": {
+                    "type": "string"
+                },
+                "filename": {
+                    "type": "string"
+                },
+                "mediaId": {
+                    "type": "string"
+                },
+                "mimeType": {
+                    "type": "string"
+                },
+                "phoneNumberId": {
+                    "type": "string"
+                },
+                "previewUrl": {
+                    "type": "string"
+                },
+                "sizeBytes": {
+                    "type": "integer"
+                },
+                "uploadHandle": {
+                    "type": "string"
+                }
+            }
+        },
+        "main.WABASanndboxConfig": {
+            "type": "object",
+            "properties": {
+                "accessToken": {
+                    "type": "string"
+                },
+                "apiVersion": {
+                    "type": "string"
+                },
+                "appId": {
+                    "type": "string"
+                },
+                "appSecret": {
+                    "type": "string"
+                },
+                "envFilePreview": {
+                    "type": "string"
+                },
+                "graphBaseUrl": {
+                    "type": "string"
+                },
+                "groceriesMediaId": {
+                    "type": "string"
+                },
+                "isReady": {
+                    "type": "boolean"
+                },
+                "mediaAssets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/main.WABAMediaRecord"
+                    }
+                },
+                "phoneNumberId": {
+                    "type": "string"
+                },
+                "saladBowlMediaId": {
+                    "type": "string"
+                },
+                "sheetPanDinnerMediaId": {
+                    "type": "string"
+                },
+                "strawberriesMediaId": {
+                    "type": "string"
+                },
+                "templateScriptPreview": {
+                    "type": "string"
+                },
+                "validationErrors": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "verifyToken": {
+                    "type": "string"
+                },
+                "wabaId": {
+                    "type": "string"
+                }
+            }
+        },
+        "main.WABATemplateDefinition": {
+            "type": "object",
+            "properties": {
+                "addSecurityRecommendation": {
+                    "type": "boolean"
+                },
+                "autofillText": {
+                    "type": "string"
+                },
+                "bodyParams": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "bodyText": {
+                    "type": "string"
+                },
+                "buttonCta": {
+                    "type": "string"
+                },
+                "buttonUrl": {
+                    "type": "string"
+                },
+                "carouselCards": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/main.TemplateCarouselCard"
+                    }
+                },
+                "category": {
+                    "type": "string"
+                },
+                "codeExpirationMinutes": {
+                    "type": "integer"
+                },
+                "documentFilename": {
+                    "type": "string"
+                },
+                "footerText": {
+                    "type": "string"
+                },
+                "headerFormat": {
+                    "type": "string"
+                },
+                "headerMediaId": {
+                    "type": "string"
+                },
+                "headerPreviewUrl": {
+                    "type": "string"
+                },
+                "headerText": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "isLto": {
+                    "type": "boolean"
+                },
+                "language": {
+                    "type": "string"
+                },
+                "ltoText": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "offerCode": {
+                    "type": "string"
+                },
+                "otpCode": {
+                    "type": "string"
+                },
+                "otpType": {
+                    "type": "string"
+                },
+                "packageName": {
+                    "type": "string"
+                },
+                "quickReplyButtons": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "rawComponents": {},
+                "signatureHash": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        }
+    }
 }
