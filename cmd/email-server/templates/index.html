@@ -99,6 +99,12 @@
                         <span>&#128229; All Inbox</span>
                         <span class="font-mono text-[11px]" x-text="emails.length"></span>
                     </button>
+                    <button @click="activeFolder = 'UNREAD'"
+                        :class="activeFolder === 'UNREAD' ? 'bg-sky-500/10 text-sky-700 dark:text-sky-300 font-semibold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'"
+                        class="w-full flex items-center justify-between px-3 py-2 rounded-lg transition">
+                        <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-sky-500"></span> Unread Only</span>
+                        <span class="font-mono text-[11px]" x-text="emails.filter(e => isUnread(e.id)).length"></span>
+                    </button>
                     <button @click="activeFolder = 'PASS'"
                         :class="activeFolder === 'PASS' ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-semibold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'"
                         class="w-full flex items-center justify-between px-3 py-2 rounded-lg transition">
@@ -168,15 +174,21 @@
                 </template>
 
                 <template x-for="item in filteredEmails()" :key="item.id">
-                    <div @click="selectedEmailId = item.id"
-                        :class="selectedEmailId === item.id ? 'bg-emerald-500/10 dark:bg-emerald-500/15 border-l-4 border-l-emerald-500' : 'hover:bg-white dark:hover:bg-slate-900'"
+                    <div @click="selectedEmailId = item.id; markSeen(item.id)"
+                        :class="(selectedEmailId === item.id ? 'bg-emerald-500/10 dark:bg-emerald-500/15 border-l-4 border-l-emerald-500' : 'hover:bg-white dark:hover:bg-slate-900') + (isSeen(item.id) ? ' opacity-70' : '')"
                         class="p-3.5 cursor-pointer transition space-y-1.5">
                         <div class="flex items-center justify-between gap-2">
-                            <span class="font-semibold text-xs truncate" x-text="item.sender"></span>
-                            <span class="text-[10px] font-mono text-slate-400 shrink-0"
-                                x-text="formatTime(item.timestamp)"></span>
+                            <span class="flex items-center gap-1.5 min-w-0">
+                                <template x-if="isUnread(item.id)"><span class="h-2 w-2 shrink-0 rounded-full bg-sky-500" title="Unread"></span></template>
+                                <span class="text-xs truncate" :class="isUnread(item.id) ? 'font-extrabold' : 'font-medium'" x-text="item.sender"></span>
+                            </span>
+                            <span class="flex items-center gap-1.5 shrink-0">
+                                <template x-if="isSeen(item.id)"><span class="text-[10px] font-semibold text-slate-400">&#10003; Seen</span></template>
+                                <span class="text-[10px] font-mono text-slate-400" x-text="formatTime(item.timestamp)"></span>
+                            </span>
                         </div>
-                        <div class="text-xs font-bold text-slate-900 dark:text-slate-100 truncate"
+                        <div class="text-xs text-slate-900 dark:text-slate-100 truncate"
+                            :class="isUnread(item.id) ? 'font-extrabold' : 'font-normal'"
                             x-text="item.subject || '(No Subject)'"></div>
                         <div class="flex items-center justify-between gap-2 pt-1">
                             <div class="flex items-center gap-1.5">
@@ -340,9 +352,6 @@
         </main>
     </div>
 
-    <div class="hidden" hx-ext="sse" sse-connect="/events" sse-swap="email-evaluated"
-        @htmx:sse-message.camel="onSSEMessage($event)"></div>
-
     <div x-show="showComposeModal" x-cloak
         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4"
         @keydown.escape.window="showComposeModal = false">
@@ -496,6 +505,140 @@
     </div>
 
     <script>
+        window.SanndboxSync = (function () {
+            const portalBase = window.location.protocol + '//' + window.location.hostname + ':9080';
+            const baseTitle = document.title;
+            const listeners = new Set();
+            let seenByUid = new Map();
+            let unreadCount = 0;
+            let started = false;
+            let audioContext = null;
+            let lastChimeAt = 0;
+
+            function uidOf(channel, id) {
+                return String(channel).toUpperCase() + ':' + id;
+            }
+
+            function recount() {
+                let total = 0;
+                seenByUid.forEach((isSeen) => { if (!isSeen) total++; });
+                unreadCount = total;
+                document.title = total > 0 ? '(' + total + ') ' + baseTitle : baseTitle;
+                listeners.forEach((listener) => { try { listener(total); } catch (_) { } });
+            }
+
+            function unlockAudio() {
+                try {
+                    const AudioCtor = window.AudioContext || window.webkitAudioContext;
+                    if (!AudioCtor) return;
+                    audioContext = audioContext || new AudioCtor();
+                    if (audioContext.state === 'suspended') audioContext.resume();
+                } catch (_) { }
+            }
+
+            function playChime() {
+                const now = Date.now();
+                if (now - lastChimeAt < 400) return;
+                lastChimeAt = now;
+                try {
+                    unlockAudio();
+                    if (!audioContext || audioContext.state !== 'running') return;
+                    [880, 1318.5].forEach((frequency, index) => {
+                        const oscillator = audioContext.createOscillator();
+                        const gain = audioContext.createGain();
+                        const startAt = audioContext.currentTime + index * 0.12;
+                        oscillator.type = 'sine';
+                        oscillator.frequency.value = frequency;
+                        gain.gain.setValueAtTime(0.0001, startAt);
+                        gain.gain.exponentialRampToValueAtTime(0.18, startAt + 0.02);
+                        gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.25);
+                        oscillator.connect(gain);
+                        gain.connect(audioContext.destination);
+                        oscillator.start(startAt);
+                        oscillator.stop(startAt + 0.26);
+                    });
+                } catch (_) { }
+            }
+
+            function ingest(item, notify) {
+                if (!item || !item.uid) return;
+                const previous = seenByUid.get(item.uid);
+                const isSeen = !!item.seen || previous === true;
+                seenByUid.set(item.uid, isSeen);
+                recount();
+                if (notify && previous === undefined && !isSeen) playChime();
+            }
+
+            async function resync(notify) {
+                try {
+                    const response = await fetch(portalBase + '/api/v1/feed');
+                    if (!response.ok) return;
+                    const snapshot = await response.json();
+                    const previousMap = seenByUid;
+                    const nextMap = new Map();
+                    let hasNewUnread = false;
+                    (snapshot.items || []).forEach((item) => {
+                        const wasSeen = previousMap.get(item.uid);
+                        const isSeen = !!item.seen || wasSeen === true;
+                        nextMap.set(item.uid, isSeen);
+                        if (notify && wasSeen === undefined && !isSeen) hasNewUnread = true;
+                    });
+                    seenByUid = nextMap;
+                    recount();
+                    if (hasNewUnread) playChime();
+                } catch (_) { }
+            }
+
+            function connectStream() {
+                try {
+                    const stream = new EventSource(portalBase + '/events');
+                    stream.addEventListener('communication-event', (event) => {
+                        try { ingest(JSON.parse(event.data), true); } catch (_) { }
+                    });
+                } catch (_) { }
+            }
+
+            function start(options) {
+                if (options && options.onChange) listeners.add(options.onChange);
+                if (started) return;
+                started = true;
+                ['pointerdown', 'keydown', 'touchstart'].forEach((type) => {
+                    window.addEventListener(type, unlockAudio, { once: true, passive: true });
+                });
+                resync(false);
+                connectStream();
+                setInterval(() => resync(true), 15000);
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'visible') resync(true);
+                });
+            }
+
+            function markSeen(channel, id) {
+                const uid = uidOf(channel, id);
+                if (seenByUid.get(uid) === true) return;
+                seenByUid.set(uid, true);
+                recount();
+                try {
+                    fetch(portalBase + '/api/v1/seen', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ uid: uid }),
+                        keepalive: true
+                    }).catch(() => { });
+                } catch (_) { }
+            }
+
+            return {
+                start: start,
+                markSeen: markSeen,
+                isUnread: (channel, id) => seenByUid.get(uidOf(channel, id)) === false,
+                isSeen: (channel, id) => seenByUid.get(uidOf(channel, id)) === true,
+                unreadTotal: () => unreadCount
+            };
+        })();
+    </script>
+
+    <script>
         function webmailClient() {
             return {
                 themeMode: 'system',
@@ -532,15 +675,38 @@
                         if (this.themeMode === 'system') this.applyThemeClass('system');
                     });
 
+                    const targetId = new URLSearchParams(window.location.search).get('id');
                     const savedEmails = sessionStorage.getItem('email_Sanndbox_items');
                     if (savedEmails) {
                         try {
                             this.emails = JSON.parse(savedEmails);
                             if (this.emails.length > 0) this.selectedEmailId = this.emails[0].id;
                         } catch (_) { }
-                    } else {
-                        this.dispatchPreset('clean');
                     }
+
+                    fetch('/api/v1/emails?sessionId=' + encodeURIComponent(this.sessionId))
+                        .then(r => r.json())
+                        .then(serverList => {
+                            if (Array.isArray(serverList) && serverList.length > 0) {
+                                serverList.forEach(item => {
+                                    if (!this.emails.some(e => e.id === item.id)) {
+                                        this.emails.unshift(item);
+                                    }
+                                });
+                                this.persistEmails();
+                            } else if (this.emails.length === 0) {
+                                this.dispatchPreset('clean');
+                            }
+                            if (targetId && this.emails.some(e => e.id === targetId)) {
+                                this.selectedEmailId = targetId;
+                                this.markSeen(targetId);
+                            } else if (!this.selectedEmailId && this.emails.length > 0) {
+                                this.selectedEmailId = this.emails[0].id;
+                            }
+                        })
+                        .catch(() => {
+                            if (this.emails.length === 0) this.dispatchPreset('clean');
+                        });
 
                     const sse = new EventSource('/events?sessionId=' + encodeURIComponent(this.sessionId));
                     sse.addEventListener('email-evaluated', (event) => {
@@ -554,12 +720,8 @@
                         } catch (_) { }
                     });
 
-                    window.addEventListener('pagehide', (e) => {
-                        if (!e.persisted) {
-                            sse.close();
-                            navigator.sendBeacon('/api/v1/emails/clear?sessionId=' + encodeURIComponent(this.sessionId));
-                        }
-                    });
+
+                    this.startBackgroundSync();
                 },
 
                 serviceUrl(port) {
@@ -581,7 +743,9 @@
 
                 filteredEmails() {
                     return this.emails.filter(e => {
-                        if (this.activeFolder !== 'ALL' && e.report.overallStatus !== this.activeFolder) return false;
+                        if (this.activeFolder === 'UNREAD') {
+                            if (!this.isUnread(e.id)) return false;
+                        } else if (this.activeFolder !== 'ALL' && e.report.overallStatus !== this.activeFolder) return false;
                         if (!this.searchQuery) return true;
                         const q = this.searchQuery.toLowerCase();
                         return (e.subject || '').toLowerCase().includes(q) ||
@@ -614,19 +778,45 @@
                     }));
                 },
 
-                async onSSEMessage() {
-                    const res = await fetch('/api/v1/emails?sessionId=' + encodeURIComponent(this.sessionId));
-                    if (res.ok) {
-                        const list = await res.json();
-                        if (Array.isArray(list) && list.length > 0) {
-                            const latest = list[0];
-                            if (!this.emails.some(e => e.id === latest.id)) {
-                                this.emails.unshift(latest);
-                                this.selectedEmailId = latest.id;
-                                this.persistEmails();
+                syncTick: 0,
+
+                isUnread(id) {
+                    void this.syncTick;
+                    return SanndboxSync.isUnread('EMAIL', id);
+                },
+
+                isSeen(id) {
+                    void this.syncTick;
+                    return SanndboxSync.isSeen('EMAIL', id);
+                },
+
+                markSeen(id) {
+                    SanndboxSync.markSeen('EMAIL', id);
+                },
+
+                startBackgroundSync() {
+                    SanndboxSync.start({ onChange: () => { this.syncTick++; } });
+                    document.addEventListener('visibilitychange', () => {
+                        if (document.visibilityState === 'visible') this.syncFromServer();
+                    });
+                    setInterval(() => this.syncFromServer(), 15000);
+                },
+
+                async syncFromServer() {
+                    try {
+                        const response = await fetch('/api/v1/emails?sessionId=' + encodeURIComponent(this.sessionId));
+                        if (!response.ok) return;
+                        const serverList = await response.json();
+                        if (!Array.isArray(serverList)) return;
+                        let added = false;
+                        serverList.slice().reverse().forEach(item => {
+                            if (!this.emails.some(e => e.id === item.id)) {
+                                this.emails.unshift(item);
+                                added = true;
                             }
-                        }
-                    }
+                        });
+                        if (added) this.persistEmails();
+                    } catch (_) { }
                 },
 
                 clearTabCache() {
