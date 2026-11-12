@@ -67,10 +67,8 @@
 <body class="h-screen overflow-hidden flex flex-col gf-canvas text-slate-900 dark:text-[#ccccdc] select-none"
     x-data="grafanaDashboard()" x-init="initDashboard()">
 
-    <!-- TOP GRAFANA NAVBAR + DIRECT PLATFORM LAUNCHER BUTTONS -->
     <header
         class="h-12 shrink-0 bg-white dark:bg-[#181b1f] border-b border-slate-200 dark:border-[#2c3235] px-4 flex items-center justify-between gap-3 z-30">
-        <!-- Breadcrumb & Brand -->
         <div class="flex items-center gap-3 min-w-0">
             <div
                 class="h-7 w-7 rounded bg-gradient-to-br from-amber-500 via-orange-500 to-rose-600 flex items-center justify-center text-white font-extrabold text-xs shadow-sm shrink-0">
@@ -83,7 +81,6 @@
                     SSE</span>
             </div>
 
-            <!-- DIRECT PLATFORM SERVER LAUNCHER BAR (1-Click Jump to Dedicated Emulator) -->
             <nav class="hidden lg:flex items-center gap-1.5 pl-3 border-l border-slate-200 dark:border-[#2c3235]">
                 <span class="text-[10px] font-mono uppercase tracking-wider text-slate-400 mr-1">Open Platform:</span>
                 <a :href="serviceUrl(9081)"
@@ -113,9 +110,7 @@
             </nav>
         </div>
 
-        <!-- Grafana Controls Bar -->
         <div class="flex items-center gap-2">
-            <!-- Simulate Traffic Dropdown -->
             <div class="relative" x-data="{ openSim: false }">
                 <button @click="openSim = !openSim"
                     class="px-2.5 py-1 rounded text-xs font-semibold bg-orange-500 hover:bg-orange-400 text-white flex items-center gap-1.5 shadow-sm transition">
@@ -154,7 +149,6 @@
                 </div>
             </div>
 
-            <!-- Pause / Resume Stream -->
             <button @click="streamPaused = !streamPaused"
                 :class="streamPaused ? 'bg-amber-500/20 text-amber-400 border-amber-500/40' : 'bg-slate-100 dark:bg-[#22252b] text-slate-700 dark:text-[#ccccdc] border-slate-300 dark:border-[#2c3235]'"
                 class="px-2.5 py-1 rounded border text-xs font-medium flex items-center gap-1.5 transition"
@@ -164,13 +158,11 @@
                 <span x-text="streamPaused ? 'Paused' : 'Streaming Live'"></span>
             </button>
 
-            <!-- Refresh Snapshot -->
             <button @click="refreshSnapshot()" title="Poll all 4 servers now"
                 class="px-2.5 py-1 rounded border border-slate-300 dark:border-[#2c3235] bg-slate-100 dark:bg-[#22252b] hover:bg-slate-200 dark:hover:bg-[#2c3235] text-xs font-medium transition">
                 &#8635; Sync
             </button>
 
-            <!-- Theme Switcher -->
             <div
                 class="hidden sm:inline-flex rounded p-0.5 bg-slate-200 dark:bg-[#22252b] border border-slate-300 dark:border-[#2c3235] text-[11px]">
                 <button @click="setTheme('dark')"
@@ -186,11 +178,9 @@
         </div>
     </header>
 
-    <!-- GRAFANA TEMPLATE VARIABLES SUB-BAR (Channel, Status, Read State & Search) -->
     <div
         class="shrink-0 bg-slate-100 dark:bg-[#141619] border-b border-slate-200 dark:border-[#2c3235] px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
         <div class="flex flex-wrap items-center gap-2">
-            <!-- Variable: Channel -->
             <div class="flex items-center rounded border border-slate-300 dark:border-[#2c3235] overflow-hidden">
                 <span
                     class="px-2 py-1 bg-slate-200 dark:bg-[#22252b] text-amber-600 dark:text-amber-400 font-mono text-[11px] font-semibold">channel</span>
@@ -217,7 +207,6 @@
                 </div>
             </div>
 
-            <!-- Variable: Status -->
             <div class="flex items-center rounded border border-slate-300 dark:border-[#2c3235] overflow-hidden">
                 <span
                     class="px-2 py-1 bg-slate-200 dark:bg-[#22252b] text-amber-600 dark:text-amber-400 font-mono text-[11px] font-semibold">status</span>
@@ -237,7 +226,6 @@
                 </div>
             </div>
 
-            <!-- Variable: Read / Unread State -->
             <div class="flex items-center rounded border border-slate-300 dark:border-[#2c3235] overflow-hidden">
                 <span
                     class="px-2 py-1 bg-slate-200 dark:bg-[#22252b] text-amber-600 dark:text-amber-400 font-mono text-[11px] font-semibold">state</span>
@@ -258,7 +246,6 @@
             </div>
         </div>
 
-        <!-- LogQL-style Filter Input + Mark All Seen + Clear -->
         <div class="flex items-center gap-2 flex-1 max-w-md">
             <div
                 class="flex-1 flex items-center rounded border border-slate-300 dark:border-[#2c3235] bg-white dark:bg-[#181b1f] overflow-hidden">
@@ -278,16 +265,12 @@
         </div>
     </div>
 
-    <!-- MAIN DASHBOARD GRID -->
     <div class="flex-1 flex overflow-hidden p-3 gap-3">
 
-        <!-- LEFT / CENTER OBSERVABILITY WORKSPACE -->
         <div class="flex-1 flex flex-col gap-3 overflow-hidden min-w-0">
 
-            <!-- ROW 1: GRAFANA STAT PANELS & PLATFORM LAUNCHER CARDS (6 COLUMNS) -->
             <div class="grid grid-cols-2 md:grid-cols-6 gap-2.5 shrink-0">
 
-                <!-- Panel 1: Total Throughput & Unread Counter -->
                 <div class="gf-panel p-3 flex flex-col justify-between">
                     <div class="flex items-center justify-between text-[11px] text-slate-500 dark:text-[#8e8e9e]">
                         <span class="font-semibold uppercase tracking-wider">Total Events</span>
@@ -310,7 +293,6 @@
                     </div>
                 </div>
 
-                <!-- Panel 2: Evaluation Health Breakdown -->
                 <div class="gf-panel p-3 flex flex-col justify-between">
                     <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-[#8e8e9e]">
                         Rule Evaluations
@@ -334,7 +316,6 @@
                     </div>
                 </div>
 
-                <!-- Panel 3: Email Server Node (:9081 / :2525) -->
                 <div class="gf-panel p-3 flex flex-col justify-between transition"
                     :class="channelFilter === 'EMAIL' ? 'ring-1 ring-emerald-500' : ''">
                     <div class="flex items-center justify-between">
@@ -364,7 +345,6 @@
                     </div>
                 </div>
 
-                <!-- Panel 4: SMS Server Node (:9082) -->
                 <div class="gf-panel p-3 flex flex-col justify-between transition"
                     :class="channelFilter === 'SMS' ? 'ring-1 ring-sky-400' : ''">
                     <div class="flex items-center justify-between">
@@ -394,7 +374,6 @@
                     </div>
                 </div>
 
-                <!-- Panel 5: WhatsApp Business Node (:9083) -->
                 <div class="gf-panel p-3 flex flex-col justify-between transition"
                     :class="channelFilter === 'WHATSAPP' ? 'ring-1 ring-teal-400' : ''">
                     <div class="flex items-center justify-between">
@@ -424,7 +403,6 @@
                     </div>
                 </div>
 
-                <!-- Panel 6: Telegram Desktop Node (:9084) -->
                 <div class="gf-panel p-3 flex flex-col justify-between transition"
                     :class="channelFilter === 'TELEGRAM' ? 'ring-1 ring-blue-400' : ''">
                     <div class="flex items-center justify-between">
@@ -455,7 +433,6 @@
                 </div>
             </div>
 
-            <!-- ROW 2: GRAFANA LOKI-STYLE REAL-TIME EVENT VOLUME HISTOGRAM -->
             <div class="gf-panel px-4 py-2.5 shrink-0">
                 <div class="flex items-center justify-between text-[11px] mb-2">
                     <div class="flex items-center gap-2">
@@ -492,7 +469,6 @@
                 </div>
             </div>
 
-            <!-- ROW 3: UNIFIED REAL-TIME LOGS / COMMUNICATIONS STREAM TABLE -->
             <div class="gf-panel flex-1 flex flex-col overflow-hidden min-h-0">
                 <div class="gf-panel-header px-4 py-2 flex items-center justify-between text-xs shrink-0">
                     <div class="flex items-center gap-2.5">
@@ -508,7 +484,6 @@
                     </div>
                 </div>
 
-                <!-- Column Headers -->
                 <div
                     class="grid grid-cols-12 gap-2 px-4 py-1.5 bg-slate-100 dark:bg-[#141619] border-b border-slate-200 dark:border-[#2c3235] text-[10px] font-mono uppercase tracking-wider text-slate-500 dark:text-[#8e8e9e] shrink-0">
                     <div class="col-span-2 sm:col-span-1">State / Time</div>
@@ -519,7 +494,6 @@
                     <div class="hidden sm:block sm:col-span-2 text-right">Action</div>
                 </div>
 
-                <!-- Stream Rows -->
                 <div
                     class="flex-1 overflow-y-auto divide-y divide-slate-200/70 dark:divide-[#22252b] font-mono text-xs select-text">
                     <template x-if="filteredItems().length === 0">
@@ -550,7 +524,6 @@
                             ]"
                             class="grid grid-cols-12 gap-2 px-4 py-2.5 items-center cursor-pointer transition">
 
-                            <!-- Read State Indicator + Time -->
                             <div class="col-span-2 sm:col-span-1 flex items-center gap-1.5 text-[11px] truncate">
                                 <template x-if="!item.seen">
                                     <span class="h-2 w-2 rounded-full bg-sky-400 shrink-0"
@@ -564,7 +537,6 @@
                                     x-text="formatTime(item.timestamp)"></span>
                             </div>
 
-                            <!-- Channel Pill -->
                             <div class="col-span-2 sm:col-span-1">
                                 <span class="px-1.5 py-0.5 rounded text-[10px] font-bold inline-flex items-center gap-1"
                                     :class="{
@@ -575,7 +547,6 @@
                                     }" x-text="item.channel"></span>
                             </div>
 
-                            <!-- Evaluation Status -->
                             <div class="col-span-1">
                                 <span class="px-1.5 py-0.5 rounded text-[10px] font-bold" :class="{
                                         'bg-emerald-500/20 text-emerald-400': item.status === 'PASS',
@@ -584,7 +555,6 @@
                                     }" x-text="item.status"></span>
                             </div>
 
-                            <!-- Sender -> Recipient -->
                             <div class="col-span-3 sm:col-span-2 truncate text-[11px]">
                                 <span
                                     :class="item.seen ? 'text-slate-600 dark:text-slate-400' : 'text-slate-900 dark:text-white font-bold'"
@@ -593,7 +563,6 @@
                                 <span class="text-slate-500 dark:text-[#8e8e9e]" x-text="item.recipient"></span>
                             </div>
 
-                            <!-- Title + Preview + Seen Badge -->
                             <div class="col-span-4 sm:col-span-5 min-w-0 flex items-center gap-2">
                                 <span
                                     class="hidden lg:inline-block px-1.5 py-0.5 rounded bg-slate-200/70 dark:bg-[#22252b] text-[10px] text-slate-600 dark:text-[#8e8e9e] shrink-0"
@@ -607,7 +576,6 @@
                                 </div>
                             </div>
 
-                            <!-- Direct Deep-Link Jump Button + Seen Pill -->
                             <div class="hidden sm:flex sm:col-span-2 justify-end items-center gap-1.5">
                                 <template x-if="item.seen">
                                     <span
@@ -627,12 +595,10 @@
             </div>
         </div>
 
-        <!-- RIGHT DRAWER: GRAFANA EVENT INSPECTOR & DEEP-LINK LAUNCHER -->
         <aside x-show="selectedItem" x-cloak
             class="w-96 shrink-0 gf-panel flex flex-col overflow-hidden shadow-xl select-text">
             <template x-if="selectedItem">
                 <div class="flex-1 flex flex-col overflow-hidden">
-                    <!-- Drawer Header -->
                     <div
                         class="gf-panel-header p-3.5 flex items-start justify-between gap-2 bg-slate-50 dark:bg-[#141619]">
                         <div class="min-w-0">
@@ -663,7 +629,6 @@
                             class="text-slate-400 hover:text-white font-bold text-sm px-1.5">&times;</button>
                     </div>
 
-                    <!-- Primary CTA: Jump Directly to Native Channel Emulator UI -->
                     <div
                         class="p-3 bg-amber-500/10 border-b border-amber-500/20 flex items-center justify-between gap-2">
                         <div class="text-xs">
@@ -677,9 +642,7 @@
                         </a>
                     </div>
 
-                    <!-- Inspector Body -->
                     <div class="flex-1 overflow-y-auto p-3.5 space-y-4 text-xs">
-                        <!-- Metadata Grid -->
                         <div class="grid grid-cols-2 gap-2 font-mono text-[11px]">
                             <div
                                 class="p-2 rounded bg-slate-100 dark:bg-[#141619] border border-slate-200 dark:border-[#2c3235]">
@@ -707,7 +670,6 @@
                             </div>
                         </div>
 
-                        <!-- Message Content Preview -->
                         <div class="space-y-1">
                             <div class="text-[10px] font-mono uppercase tracking-wider text-slate-400">Message Preview
                             </div>
@@ -715,7 +677,6 @@
                                 x-text="selectedItem.preview"></div>
                         </div>
 
-                        <!-- Evaluation Matrix Checks -->
                         <div class="space-y-1.5">
                             <div class="text-[10px] font-mono uppercase tracking-wider text-slate-400"
                                 x-text="'Protocol & Security Checks (' + (selectedItem.criteria ? selectedItem.criteria.length : 0) + ')'">
@@ -738,7 +699,6 @@
                             </template>
                         </div>
 
-                        <!-- Raw JSON Payload -->
                         <div class="space-y-1">
                             <div class="text-[10px] font-mono uppercase tracking-wider text-slate-400">Raw Event JSON
                             </div>
@@ -851,11 +811,22 @@
                 } catch (_) { }
             }
 
+            function forgetChannel(channel) {
+                const prefix = channel === 'ALL' ? '' : String(channel).toUpperCase() + ':';
+                Array.from(seenByUid.keys()).forEach((uid) => { if (uid.startsWith(prefix)) seenByUid.delete(uid); });
+                Object.keys(localSeen).forEach((uid) => { if (uid.startsWith(prefix)) delete localSeen[uid]; });
+                persistLocalSeen();
+                recount();
+            }
+
             function connectStream() {
                 try {
                     const stream = new EventSource(portalBase + '/events');
                     stream.addEventListener('communication-event', (event) => {
                         try { ingest(JSON.parse(event.data), true); } catch (_) { }
+                    });
+                    stream.addEventListener('channel-cleared', (event) => {
+                        try { forgetChannel(JSON.parse(event.data).channel); } catch (_) { }
                     });
                 } catch (_) { }
             }
@@ -936,6 +907,13 @@
                     this.refreshSnapshot(true);
 
                     const sse = new EventSource('/events');
+                    sse.addEventListener('channel-cleared', (event) => {
+                        try {
+                            const clearedChannel = JSON.parse(event.data).channel;
+                            this.items = clearedChannel === 'ALL' ? [] : this.items.filter(item => item.channel !== clearedChannel);
+                            if (this.selectedItem && !this.items.some(item => item.uid === this.selectedItem.uid)) this.selectedItem = null;
+                        } catch (_) { }
+                    });
                     sse.addEventListener('communication-event', (event) => {
                         if (this.streamPaused) return;
                         try {

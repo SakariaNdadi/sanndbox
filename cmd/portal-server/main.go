@@ -64,38 +64,43 @@ type FeedSnapshotResponse struct {
 	Sources map[string]ChannelHealthStatus `json:"sources"`
 }
 
+type HubEvent struct {
+	Name string
+	Data string
+}
+
 type HubBroadcaster struct {
 	mutex       sync.RWMutex
-	subscribers map[chan string]struct{}
+	subscribers map[chan HubEvent]struct{}
 }
 
 func NewHubBroadcaster() *HubBroadcaster {
 	return &HubBroadcaster{
-		subscribers: make(map[chan string]struct{}),
+		subscribers: make(map[chan HubEvent]struct{}),
 	}
 }
 
-func (broadcaster *HubBroadcaster) Subscribe() chan string {
-	ch := make(chan string, 32)
+func (broadcaster *HubBroadcaster) Subscribe() chan HubEvent {
+	ch := make(chan HubEvent, 32)
 	broadcaster.mutex.Lock()
 	broadcaster.subscribers[ch] = struct{}{}
 	broadcaster.mutex.Unlock()
 	return ch
 }
 
-func (broadcaster *HubBroadcaster) Unsubscribe(ch chan string) {
+func (broadcaster *HubBroadcaster) Unsubscribe(ch chan HubEvent) {
 	broadcaster.mutex.Lock()
 	delete(broadcaster.subscribers, ch)
 	close(ch)
 	broadcaster.mutex.Unlock()
 }
 
-func (broadcaster *HubBroadcaster) Broadcast(payload string) {
+func (broadcaster *HubBroadcaster) Broadcast(eventName string, payload string) {
 	broadcaster.mutex.RLock()
 	defer broadcaster.mutex.RUnlock()
 	for sub := range broadcaster.subscribers {
 		select {
-		case sub <- payload:
+		case sub <- HubEvent{Name: eventName, Data: payload}:
 		default:
 		}
 	}
@@ -219,7 +224,7 @@ func (agg *TelemetryAggregator) IngestNormalized(item UnifiedFeedItem, broadcast
 
 	if broadcast {
 		if encoded, err := json.Marshal(item); err == nil {
-			agg.broadcaster.Broadcast(string(encoded))
+			agg.broadcaster.Broadcast("communication-event", string(encoded))
 		}
 	}
 	return true
@@ -277,8 +282,49 @@ func (agg *TelemetryAggregator) MarkSeen(uids []string, markAll bool) {
 
 	for _, item := range updatedItems {
 		if encoded, err := json.Marshal(item); err == nil {
-			agg.broadcaster.Broadcast(string(encoded))
+			agg.broadcaster.Broadcast("communication-event", string(encoded))
 		}
+	}
+}
+
+var channelClearPaths = map[string]string{
+	"EMAIL":    "/api/v1/emails/clear?all=1",
+	"SMS":      "/api/v1/sms/clear?all=1",
+	"WHATSAPP": "/api/v1/whatsapp/clear?all=1",
+	"TELEGRAM": "/api/v1/telegram/clear?all=1",
+}
+
+func (agg *TelemetryAggregator) ClearChannel(channel string) {
+	prefix := channel + ":"
+	agg.mutex.Lock()
+	retained := make([]UnifiedFeedItem, 0, len(agg.items))
+	for _, item := range agg.items {
+		if item.Channel != channel {
+			retained = append(retained, item)
+		}
+	}
+	agg.items = retained
+	for uid := range agg.seenUIDs {
+		if strings.HasPrefix(uid, prefix) {
+			delete(agg.seenUIDs, uid)
+		}
+	}
+	for uid := range agg.readUIDs {
+		if strings.HasPrefix(uid, prefix) {
+			delete(agg.readUIDs, uid)
+		}
+	}
+	if st, ok := agg.health[channel]; ok {
+		st.TotalSeen = 0
+		agg.health[channel] = st
+	}
+	agg.mutex.Unlock()
+	agg.broadcastChannelCleared(channel)
+}
+
+func (agg *TelemetryAggregator) broadcastChannelCleared(channel string) {
+	if encoded, err := json.Marshal(map[string]string{"channel": channel}); err == nil {
+		agg.broadcaster.Broadcast("channel-cleared", string(encoded))
 	}
 }
 
@@ -292,6 +338,21 @@ func (agg *TelemetryAggregator) ClearAll() {
 		agg.health[k] = st
 	}
 	agg.mutex.Unlock()
+
+	client := &http.Client{Timeout: 3 * time.Second}
+	var waitGroup sync.WaitGroup
+	for channel, clearPath := range channelClearPaths {
+		waitGroup.Add(1)
+		go func(channel string, clearPath string) {
+			defer waitGroup.Done()
+			resp, err := client.Post(agg.ActiveBaseURL(channel)+clearPath, "application/json", nil)
+			if err == nil {
+				_ = resp.Body.Close()
+			}
+		}(channel, clearPath)
+	}
+	waitGroup.Wait()
+	agg.broadcastChannelCleared("ALL")
 }
 
 func (agg *TelemetryAggregator) StartCollectors() {
@@ -371,6 +432,7 @@ func (agg *TelemetryAggregator) collectChannelLoop(
 		agg.setConnected(channel, port, true)
 		reader := bufio.NewReader(resp.Body)
 		var dataLines []string
+		currentEvent := ""
 
 		for {
 			line, readErr := reader.ReadString('\n')
@@ -379,6 +441,13 @@ func (agg *TelemetryAggregator) collectChannelLoop(
 			}
 			trimmed := strings.TrimRight(line, "\r\n")
 			if trimmed == "" {
+				if strings.HasSuffix(currentEvent, "-cleared") {
+					dataLines = nil
+					currentEvent = ""
+					agg.ClearChannel(channel)
+					continue
+				}
+				currentEvent = ""
 				if len(dataLines) > 0 {
 					rawJSON := strings.Join(dataLines, "\n")
 					dataLines = nil
@@ -390,6 +459,10 @@ func (agg *TelemetryAggregator) collectChannelLoop(
 						agg.fetchSnapshotOnce(channel, port, listPath, normalizer)
 					}
 				}
+				continue
+			}
+			if strings.HasPrefix(trimmed, "event:") {
+				currentEvent = strings.TrimSpace(strings.TrimPrefix(trimmed, "event:"))
 				continue
 			}
 			if strings.HasPrefix(trimmed, "data:") {
@@ -753,8 +826,8 @@ func main() {
 			select {
 			case <-request.Context().Done():
 				return
-			case payload := <-sub:
-				_, _ = fmt.Fprintf(responseWriter, "event: communication-event\ndata: %s\n\n", payload)
+			case hubEvent := <-sub:
+				_, _ = fmt.Fprintf(responseWriter, "event: %s\ndata: %s\n\n", hubEvent.Name, hubEvent.Data)
 				flusher.Flush()
 			}
 		}

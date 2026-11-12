@@ -62,7 +62,7 @@ The Portal finds the other services on `localhost` (or by Docker service name). 
 1. **Send a message to a service** from your app, or use the presets and composer in each UI. Examples are below.
 2. **See it arrive** in that channel's UI and in the Portal stream, in real time.
 3. **Open the evaluation** (click a message) to see which checks passed, warned or failed and why.
-4. **Fix your app and send again.** Press **Clear** in a channel UI to delete that channel's messages, or **Clear** in the Portal to wipe every channel.
+4. **Fix your app and send again.** Use the Clear button, or `POST /api/v1/feed/clear` on the Portal, to reset.
 
 ### Sending messages
 
@@ -114,17 +114,6 @@ curl -X POST http://localhost:9084/api/v1/telegram -H "Content-Type: application
   -d '{"method":"messages.sendMessage","peer":"inputPeerChannel#994812","sender":"@FraudOpsMTProtoBot","randomId":88492019283,"message":"[MTProto] Rule evaluation moved to DB (item 12); legacy alerts without case_key will emit 1 fresh alert before grouping."}'
 ```
 
-### Message lifetime
-
-Messages are shared by every browser tab and kept in server memory:
-
-- Closing or reloading tabs never deletes anything. A new tab shows everything already received.
-- **Clear** in a channel UI deletes all of that channel's messages for everyone. Open tabs and the Portal update at once.
-- **Clear** in the Portal deletes the messages in all four channels.
-- Stopping or restarting a server deletes its messages.
-
-To clear from a script, call the channel's clear endpoint with `all=1`, for example `curl -X POST "http://localhost:9081/api/v1/emails/clear?all=1"` (SMS: `/api/v1/sms/clear`, WhatsApp: `/api/v1/whatsapp/clear`, Telegram: `/api/v1/telegram/clear`).
-
 For a guided walkthrough of every UI, see [TUTORIAL.md](TUTORIAL.md).
 
 ## Unread tracking and notifications
@@ -144,9 +133,9 @@ Deep links open a message directly: `http://localhost:9081/?id=<messageId>`.
 | :--- | :--- |
 | `GET /api/v1/feed` | Snapshot of all aggregated messages plus per-channel health. Add `?refresh=1` to re-poll the channels first. |
 | `POST /api/v1/seen` | Mark messages seen. Body: `{"uid":"EMAIL:<id>"}`, `{"uids":[...]}`, `{"channel":"email","id":"<id>"}` or `{"all":true}`. |
-| `POST /api/v1/feed/clear` | Delete all messages in every channel, plus the Portal feed and seen records. |
+| `POST /api/v1/feed/clear` | Empty the aggregated feed and the seen records. |
 | `POST /api/v1/simulate` | Generate sample traffic. Body: `{"channel":"ALL"}`, or `EMAIL`, `SMS`, `WHATSAPP`, `TELEGRAM`. An empty channel means all. |
-| `GET /events` | Server-Sent Events stream: `communication-event` for messages and seen updates, `channel-cleared` when a channel (or `ALL`) is cleared. |
+| `GET /events` | Server-Sent Events stream of messages and seen updates (`communication-event`). |
 
 ## Configuration
 
@@ -176,7 +165,7 @@ Each channel is an independent Go binary built with the standard library only. A
 
 This is a development and testing tool, not a production service.
 
-- **No persistence.** Messages and seen state live in memory and are lost when a service restarts. Until then they stay, whatever happens to the browser tabs.
+- **No persistence.** Messages and seen state live in memory and are lost when a service restarts.
 - **No authentication.** Anyone who can reach the ports can send and read messages. The Portal also allows any origin (`Access-Control-Allow-Origin: *`). Docker Compose publishes the ports on all interfaces, so run it on a trusted network or restrict the port bindings.
 - **Emulation, not delivery.** The evaluators encode documented provider rules. They do not replace testing with the real service before launch.
 - **Read state is per browser.** It is stored in each browser's `localStorage`, alongside the Portal's own record.

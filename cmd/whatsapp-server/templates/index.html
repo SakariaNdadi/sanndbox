@@ -72,7 +72,6 @@
     class="bg-[#d1d7db] dark:bg-[#090e11] text-[#111b21] dark:text-[#e9edef] h-screen flex flex-col overflow-hidden transition-colors duration-200"
     x-data="whatsappApp()" x-init="initApp()">
 
-    <!-- Top WhatsApp Sanndbox Bar -->
     <header
         class="h-12 bg-[#00a884] dark:bg-[#202c33] text-white px-4 flex items-center justify-between shrink-0 z-30 shadow-sm border-b border-black/10 dark:border-[#2f3b43]">
         <div class="flex items-center gap-3">
@@ -92,7 +91,6 @@
                     Cloud API (:9083)</span>
             </div>
 
-            <!-- View Switcher -->
             <nav class="flex items-center bg-black/15 p-0.5 rounded-lg text-xs ml-2">
                 <button @click="activeTab = 'chat'"
                     :class="activeTab === 'chat' ? 'bg-white text-[#008069] font-semibold shadow-sm' : 'text-white/90 hover:text-white'"
@@ -149,13 +147,10 @@
         </div>
     </header>
 
-    <!-- TAB 1: AUTHENTIC WHATSAPP CLIENT PREVIEW -->
     <div x-show="activeTab === 'chat'" class="flex-1 flex overflow-hidden">
 
-        <!-- Left Sidebar: WhatsApp Conversation List & Quick Test Flows -->
         <aside
             class="w-80 bg-white dark:bg-[#111b21] border-r border-[#e9edef] dark:border-[#222d34] flex flex-col shrink-0 select-none">
-            <!-- Active Business Profile Card -->
             <div
                 class="px-4 py-3 bg-[#f0f2f5] dark:bg-[#202c33] border-b border-[#e9edef] dark:border-[#222d34] flex items-center justify-between">
                 <div class="flex items-center gap-3">
@@ -178,7 +173,6 @@
                     class="text-[11px] text-rose-600 dark:text-rose-400 hover:underline font-medium">Clear</button>
             </div>
 
-            <!-- Interactive Bot & Preset Launcher -->
             <div class="p-3 border-b border-[#e9edef] dark:border-[#222d34] space-y-2 overflow-y-auto">
                 <div class="text-[11px] font-semibold uppercase tracking-wider text-[#008069] dark:text-[#00a884]">
                     Customer Journey Simulator</div>
@@ -316,7 +310,6 @@
                 </div>
             </div>
 
-            <!-- Active Conversation Thread Item -->
             <div class="flex-1 overflow-y-auto">
                 <div
                     class="px-4 py-3 flex items-center gap-3 bg-[#f0f2f5] dark:bg-[#2a3942] border-l-4 border-[#00a884] cursor-pointer">
@@ -336,9 +329,7 @@
             </div>
         </aside>
 
-        <!-- Center: Pure Authentic WhatsApp Chat Window -->
         <main class="flex-1 flex flex-col wa-wallpaper relative overflow-hidden">
-            <!-- WhatsApp Chat Header -->
             <div
                 class="h-14 bg-[#f0f2f5] dark:bg-[#202c33] px-4 flex items-center justify-between border-b border-[#d1d7db] dark:border-[#222d34] shrink-0 z-10">
                 <div class="flex items-center gap-3">
@@ -373,7 +364,6 @@
                 </div>
             </div>
 
-            <!-- Messages Stream (Chronological Top-to-Bottom like real WhatsApp) -->
             <div class="px-3 py-1.5 flex flex-wrap items-center gap-1.5 text-[10px] border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90">
                 <button @click="readFilter = 'ALL'"
                     :class="readFilter === 'ALL' ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900' : 'bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-300'"
@@ -393,7 +383,6 @@
             </div>
             <div id="wa-chat-scroll" class="flex-1 overflow-y-auto px-6 md:px-14 py-5 space-y-2.5 flex flex-col">
 
-                <!-- WhatsApp End-to-End Encryption Notice -->
                 <div class="flex justify-center my-2">
                     <div
                         class="max-w-md bg-[#ffeecd] dark:bg-[#182229] text-[#54656f] dark:text-[#ffd279] text-[11.5px] px-3.5 py-1.5 rounded-lg shadow-sm text-center leading-snug">
@@ -420,7 +409,6 @@
                     </div>
                 </template>
 
-                <!-- Render Messages in Chronological Order (oldest at top, newest at bottom) -->
                 <template x-for="item in chronologicalRecords" :key="item.id">
                     <div class="flex flex-col" :class="item.direction === 'INBOUND' ? 'items-end' : 'items-start'">
 
@@ -429,7 +417,6 @@
                             <template x-if="isUnread(item.id)"><span class="shrink-0 mb-2 h-2.5 w-2.5 rounded-full bg-sky-500" title="Unread"></span></template>
                         <template x-if="isSeen(item.id)"><span class="shrink-0 mb-1 text-[10px] font-semibold text-slate-400">&#10003; Seen</span></template>
 
-                            <!-- THE AUTHENTIC WHATSAPP MESSAGE BUBBLE -->
                             <div @click="inspectRecord(item)"
                                 class="w-full overflow-hidden cursor-pointer transition-shadow" :class="[
                                      item.direction === 'INBOUND'
@@ -439,7 +426,6 @@
                                      isUnread(item.id) ? 'font-bold' : ''
                                  ]">
 
-                                <!-- 1. TEMPLATE HEADER IMAGE (Full-Bleed WhatsApp Photo Header) -->
                                 <template x-if="item.templatePreview && item.templatePreview.headerFormat === 'IMAGE'">
                                     <div class="p-1 pb-0">
                                         <div
@@ -450,7 +436,6 @@
                                     </div>
                                 </template>
 
-                                <!-- 2. TEMPLATE HEADER DOCUMENT (Authentic WhatsApp PDF Card) -->
                                 <template
                                     x-if="item.templatePreview && item.templatePreview.headerFormat === 'DOCUMENT'">
                                     <div class="p-1.5 pb-0">
@@ -471,7 +456,6 @@
                                     </div>
                                 </template>
 
-                                <!-- 3. LIMITED-TIME OFFER (LTO) BANNER -->
                                 <template x-if="item.templatePreview && item.templatePreview.isLto">
                                     <div
                                         class="mx-2 mt-2 px-3 py-2 rounded-md bg-[#f0f2f5] dark:bg-[#182229] flex items-center gap-2.5">
@@ -488,10 +472,8 @@
                                     </div>
                                 </template>
 
-                                <!-- 4. DIRECT MEDIA ATTACHMENT (Image / Photo or Document) -->
                                 <template x-if="item.media">
                                     <div class="p-1 pb-0">
-                                        <!-- Direct Image Attachment -->
                                         <template
                                             x-if="item.media.mimeType && item.media.mimeType.startsWith('image/')">
                                             <div
@@ -501,7 +483,6 @@
                                                     class="w-full max-h-64 object-cover block">
                                             </div>
                                         </template>
-                                        <!-- Direct Document / Audio / Video Attachment -->
                                         <template
                                             x-if="!item.media.mimeType || !item.media.mimeType.startsWith('image/')">
                                             <div
@@ -522,7 +503,6 @@
                                     </div>
                                 </template>
 
-                                <!-- 5. MESSAGE BODY TEXT + BOLD TEXT HEADER + TIMESTAMP + READ TICKS -->
                                 <div class="px-2.5 pt-1.5 pb-1.5">
                                     <template
                                         x-if="item.templatePreview && item.templatePreview.headerFormat === 'TEXT' && item.templatePreview.headerText">
@@ -532,13 +512,11 @@
                                     <p class="text-[14.2px] leading-[19px] text-[#111b21] dark:text-[#e9edef] whitespace-pre-wrap break-words"
                                         x-text="item.text"></p>
 
-                                    <!-- Optional Template Footer -->
                                     <template x-if="item.templatePreview && item.templatePreview.footerText">
                                         <div class="text-[11.5px] text-[#667781] dark:text-[#8696a0] mt-1"
                                             x-text="item.templatePreview.footerText"></div>
                                     </template>
 
-                                    <!-- Timestamp & Read Receipt Checkmarks -->
                                     <div class="flex items-center justify-end gap-1 mt-0.5 select-none">
                                         <span class="text-[11px] text-[#667781] dark:text-[#8696a0]"
                                             x-text="formatTime(item.timestamp)"></span>
@@ -549,7 +527,6 @@
                                     </div>
                                 </div>
 
-                                <!-- 6. TEMPLATE CALL-TO-ACTION, OTP COPY/ONE-TAP, COPY-CODE & QUICK-REPLY BUTTONS -->
                                 <template
                                     x-if="item.templatePreview && (item.templatePreview.otpCode || item.templatePreview.offerCode || item.templatePreview.buttonCta || (item.templatePreview.quickReplyButtons && item.templatePreview.quickReplyButtons.length > 0))">
                                     <div
@@ -626,7 +603,6 @@
                                     </div>
                                 </template>
 
-                                <!-- 7. INTERACTIVE QUICK-REPLY BUTTONS (Hairline Divided) -->
                                 <template x-if="item.interactiveButtons && item.interactiveButtons.length > 0">
                                     <div
                                         class="border-t border-[#e9edef] dark:border-[#2a3942] divide-y divide-[#e9edef] dark:divide-[#2a3942]">
@@ -645,7 +621,6 @@
                                 </template>
                             </div>
 
-                            <!-- Subtle Validation Status Pill Next to Bubble (Opens Diagnostics Drawer) -->
                             <button @click="inspectRecord(item)"
                                 title="Click to inspect WABA Evaluation Matrix & Graph JSON"
                                 class="shrink-0 mb-1 px-2 py-0.5 rounded-full text-[10px] font-semibold shadow-sm border transition-transform hover:scale-105"
@@ -659,7 +634,6 @@
                             </button>
                         </div>
 
-                        <!-- 8. HORIZONTAL SWIPEABLE MEDIA CARD CAROUSEL (Rendered Below Parent Bubble like Real WhatsApp) -->
                         <template
                             x-if="item.templatePreview && item.templatePreview.headerFormat === 'CAROUSEL' && item.templatePreview.carouselCards">
                             <div class="flex gap-2.5 overflow-x-auto max-w-[460px] pt-1.5 pb-1">
@@ -691,7 +665,6 @@
                 </template>
             </div>
 
-            <!-- Attachment Preview Bar (When user attaches an image or file before sending) -->
             <div x-show="form.hasMedia" x-cloak
                 class="bg-[#f0f2f5] dark:bg-[#202c33] px-4 py-2.5 border-t border-[#d1d7db] dark:border-[#222d34] flex items-center justify-between gap-3">
                 <div class="flex items-center gap-3 min-w-0">
@@ -719,10 +692,8 @@
                 </div>
             </div>
 
-            <!-- Authentic WhatsApp Bottom Composer Bar -->
             <form @submit.prevent="submitMessage()"
                 class="bg-[#f0f2f5] dark:bg-[#202c33] px-3 py-2.5 flex items-center gap-2 shrink-0 border-t border-[#d1d7db] dark:border-[#222d34]">
-                <!-- Hidden File Input for Image / Document Upload -->
                 <input type="file" x-ref="chatFileInput" @change="handleChatFileUpload($event)"
                     accept="image/*,.pdf,.csv" class="hidden">
 
@@ -734,7 +705,6 @@
                     </svg>
                 </button>
 
-                <!-- Direction Toggle (Send as Business vs Reply as Customer) -->
                 <button type="button" @click="form.direction = form.direction === 'OUTBOUND' ? 'INBOUND' : 'OUTBOUND'"
                     class="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold shrink-0 transition-colors"
                     :class="form.direction === 'OUTBOUND' ? 'bg-white dark:bg-[#2a3942] text-[#111b21] dark:text-[#e9edef]' : 'bg-[#d9fdd3] dark:bg-[#005c4b] text-[#111b21] dark:text-white'">
@@ -754,7 +724,6 @@
             </form>
         </main>
 
-        <!-- Right Drawer: Collapsible WABA Diagnostics & Graph JSON Inspector -->
         <aside x-show="inspectorOpen" x-cloak
             class="w-96 bg-white dark:bg-[#111b21] border-l border-[#d1d7db] dark:border-[#222d34] flex flex-col shrink-0 overflow-y-auto">
             <div
@@ -778,7 +747,6 @@
 
             <template x-if="selectedRecord">
                 <div class="p-4 space-y-4 text-xs">
-                    <!-- Summary Status Card -->
                     <div class="p-3 rounded-xl border flex items-center justify-between" :class="{
                              'bg-emerald-50/70 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800': selectedRecord.report.overallStatus === 'PASS',
                              'bg-amber-50/70 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800': selectedRecord.report.overallStatus === 'WARN',
@@ -797,7 +765,6 @@
                             x-text="selectedRecord.source"></span>
                     </div>
 
-                    <!-- Simulate 15s Read Receipt Follow-Up -->
                     <template x-if="selectedRecord.followUpArmed">
                         <div
                             class="p-3 rounded-xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 flex items-center justify-between gap-2">
@@ -814,7 +781,6 @@
                         </div>
                     </template>
 
-                    <!-- Attribution Log (services/attribution.js) -->
                     <template x-if="selectedRecord.attribution">
                         <div
                             class="p-3 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800">
@@ -827,7 +793,6 @@
                         </div>
                     </template>
 
-                    <!-- Evaluation Criteria List -->
                     <div class="space-y-2">
                         <div
                             class="font-semibold uppercase tracking-wider text-[11px] text-[#667781] dark:text-[#8696a0]">
@@ -852,7 +817,6 @@
                         </template>
                     </div>
 
-                    <!-- Raw Graph API Payload -->
                     <template x-if="selectedRecord.rawGraphPayload">
                         <div>
                             <div
@@ -867,10 +831,8 @@
         </aside>
     </div>
 
-    <!-- TAB 2: TEMPLATE STUDIO (CREATE & PREVIEW TEMPLATES WITH LIVE PHONE BUBBLE) -->
     <div x-show="activeTab === 'templates'" x-cloak class="flex-1 overflow-y-auto p-6 bg-[#f0f2f5] dark:bg-[#111b21]">
         <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <!-- Left: Registered WABA Templates -->
             <div class="lg:col-span-7 space-y-4">
                 <div>
                     <h2 class="text-base font-bold">WhatsApp Business Message Templates (Authentication, Utility &amp;
@@ -929,7 +891,6 @@
                 </div>
             </div>
 
-            <!-- Right: Create Custom Template with Live WhatsApp Bubble Preview -->
             <div class="lg:col-span-5 space-y-4">
                 <form @submit.prevent="createCustomTemplate()"
                     class="bg-white dark:bg-[#202c33] rounded-xl p-5 border border-[#e9edef] dark:border-[#2f3b43] shadow-sm space-y-3">
@@ -1064,7 +1025,6 @@
                         </div>
                     </div>
 
-                    <!-- Live WhatsApp Preview Inside Studio -->
                     <div class="p-3 rounded-xl wa-wallpaper border border-black/10">
                         <div class="text-[10px] font-semibold uppercase tracking-wider text-[#54656f] mb-2">Live
                             Customer View</div>
@@ -1126,7 +1086,6 @@
         </div>
     </div>
 
-    <!-- TAB 3: SETUP & .ENV CONFIGURATOR -->
     <div x-show="activeTab === 'setup'" x-cloak class="flex-1 overflow-y-auto p-6 bg-[#f0f2f5] dark:bg-[#111b21]">
         <div class="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div
@@ -1186,10 +1145,8 @@
         </div>
     </div>
 
-    <!-- TAB 4: EXTERNAL DEVELOPER API GUIDE -->
     <div x-show="activeTab === 'guide'" x-cloak class="flex-1 overflow-y-auto p-6 bg-[#f0f2f5] dark:bg-[#111b21]">
         <div class="max-w-6xl mx-auto space-y-5">
-            <!-- Banner: Drop-In Meta Cloud API Architecture -->
             <div
                 class="bg-white dark:bg-[#202c33] rounded-xl p-5 border border-[#e9edef] dark:border-[#2f3b43] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div class="space-y-1">
@@ -1219,7 +1176,6 @@
                 </div>
             </div>
 
-            <!-- Endpoint Matrix Table -->
             <div
                 class="bg-white dark:bg-[#202c33] rounded-xl p-5 border border-[#e9edef] dark:border-[#2f3b43] shadow-sm space-y-3">
                 <h3 class="text-sm font-bold">1. Supported Meta Graph API &amp; Sanndbox Endpoints</h3>
@@ -1291,9 +1247,7 @@
                 </div>
             </div>
 
-            <!-- Copyable cURL Cards Grid -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                <!-- Card A: Authentication OTP Template (Graph API) -->
                 <div
                     class="bg-white dark:bg-[#202c33] rounded-xl p-5 border border-[#e9edef] dark:border-[#2f3b43] shadow-sm space-y-2.5 flex flex-col justify-between">
                     <div class="space-y-2">
@@ -1325,7 +1279,6 @@
                     </div>
                 </div>
 
-                <!-- Card B: Utility Order Receipt / Transactional Template (Graph API) -->
                 <div
                     class="bg-white dark:bg-[#202c33] rounded-xl p-5 border border-[#e9edef] dark:border-[#2f3b43] shadow-sm space-y-2.5 flex flex-col justify-between">
                     <div class="space-y-2">
@@ -1357,7 +1310,6 @@
                     </div>
                 </div>
 
-                <!-- Card C: Interactive Reply Buttons (Graph API) -->
                 <div
                     class="bg-white dark:bg-[#202c33] rounded-xl p-5 border border-[#e9edef] dark:border-[#2f3b43] shadow-sm space-y-2.5 flex flex-col justify-between">
                     <div class="space-y-2">
@@ -1385,7 +1337,6 @@
                     </div>
                 </div>
 
-                <!-- Card D: Direct Sanndbox REST API (/api/v1/whatsapp) -->
                 <div
                     class="bg-white dark:bg-[#202c33] rounded-xl p-5 border border-[#e9edef] dark:border-[#2f3b43] shadow-sm space-y-2.5 flex flex-col justify-between">
                     <div class="space-y-2">
@@ -1414,7 +1365,6 @@
                 </div>
             </div>
 
-            <!-- Node.js services/whatsapp.js Drop-In Client Example -->
             <div
                 class="bg-white dark:bg-[#202c33] rounded-xl p-5 border border-[#e9edef] dark:border-[#2f3b43] shadow-sm space-y-2.5">
                 <div class="flex items-center justify-between">
@@ -1536,11 +1486,22 @@
                 } catch (_) { }
             }
 
+            function forgetChannel(channel) {
+                const prefix = channel === 'ALL' ? '' : String(channel).toUpperCase() + ':';
+                Array.from(seenByUid.keys()).forEach((uid) => { if (uid.startsWith(prefix)) seenByUid.delete(uid); });
+                Object.keys(localSeen).forEach((uid) => { if (uid.startsWith(prefix)) delete localSeen[uid]; });
+                persistLocalSeen();
+                recount();
+            }
+
             function connectStream() {
                 try {
                     const stream = new EventSource(portalBase + '/events');
                     stream.addEventListener('communication-event', (event) => {
                         try { ingest(JSON.parse(event.data), true); } catch (_) { }
+                    });
+                    stream.addEventListener('channel-cleared', (event) => {
+                        try { forgetChannel(JSON.parse(event.data).channel); } catch (_) { }
                     });
                 } catch (_) { }
             }
@@ -1670,7 +1631,7 @@
                     this.fetchTemplates();
 
                     const targetId = new URLSearchParams(window.location.search).get('id');
-                    fetch('/api/v1/whatsapp?sessionId=' + encodeURIComponent(this.sessionId))
+                    fetch('/api/v1/whatsapp')
                         .then(r => r.json())
                         .then(data => {
                             if (Array.isArray(data) && data.length > 0) {
@@ -1682,12 +1643,10 @@
                                     this.markSeen(match.id);
                                 }
                                 this.scrollToBottom();
-                            } else {
-                                this.triggerBotFlow('', 'Start shopping!');
                             }
                         });
 
-                    const evtSource = new EventSource('/events?sessionId=' + encodeURIComponent(this.sessionId));
+                    const evtSource = new EventSource('/events');
                     evtSource.addEventListener('im-evaluated', (e) => {
                         try {
                             const rec = JSON.parse(e.data);
@@ -1700,6 +1659,7 @@
                             this.scrollToBottom();
                         } catch (err) { }
                     });
+                    evtSource.addEventListener('whatsapp-cleared', () => this.applyServerClear());
                     this.startBackgroundSync();
                 },
                 scrollToBottom() {
@@ -1750,7 +1710,7 @@
                 async syncFromServer() {
                     try {
                         const fetchStartedAt = Date.now();
-                        const response = await fetch('/api/v1/whatsapp?sessionId=' + encodeURIComponent(this.sessionId));
+                        const response = await fetch('/api/v1/whatsapp');
                         if (!response.ok) return;
                         const serverList = await response.json();
                         if (!Array.isArray(serverList)) return;
@@ -2107,8 +2067,13 @@ export async function sendWhatsAppPayload(payload) {
                         }
                     });
                 },
+                applyServerClear() {
+                    this.records = [];
+                    this.selectedRecord = null;
+                },
+
                 clearSession() {
-                    fetch('/api/v1/whatsapp/clear?sessionId=' + encodeURIComponent(this.sessionId), { method: 'POST' })
+                    fetch('/api/v1/whatsapp/clear?all=1', { method: 'POST' })
                         .then(() => {
                             this.records = [];
                             this.selectedRecord = null;
