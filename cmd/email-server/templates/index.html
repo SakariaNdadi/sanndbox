@@ -621,11 +621,22 @@
                 } catch (_) { }
             }
 
+            function forgetChannel(channel) {
+                const prefix = channel === 'ALL' ? '' : String(channel).toUpperCase() + ':';
+                Array.from(seenByUid.keys()).forEach((uid) => { if (uid.startsWith(prefix)) seenByUid.delete(uid); });
+                Object.keys(localSeen).forEach((uid) => { if (uid.startsWith(prefix)) delete localSeen[uid]; });
+                persistLocalSeen();
+                recount();
+            }
+
             function connectStream() {
                 try {
                     const stream = new EventSource(portalBase + '/events');
                     stream.addEventListener('communication-event', (event) => {
                         try { ingest(JSON.parse(event.data), true); } catch (_) { }
+                    });
+                    stream.addEventListener('channel-cleared', (event) => {
+                        try { forgetChannel(JSON.parse(event.data).channel); } catch (_) { }
                     });
                 } catch (_) { }
             }
@@ -730,8 +741,6 @@
                                     }
                                 });
                                 this.persistEmails();
-                            } else if (this.emails.length === 0) {
-                                this.dispatchPreset('clean');
                             }
                             if (targetId && this.emails.some(e => e.id === targetId)) {
                                 this.selectedEmailId = targetId;
@@ -740,9 +749,7 @@
                                 this.selectedEmailId = this.emails[0].id;
                             }
                         })
-                        .catch(() => {
-                            if (this.emails.length === 0) this.dispatchPreset('clean');
-                        });
+                        .catch(() => { });
 
                     const sse = new EventSource('/events?sessionId=' + encodeURIComponent(this.sessionId));
                     sse.addEventListener('email-evaluated', (event) => {
@@ -757,6 +764,7 @@
                     });
 
 
+                    sse.addEventListener('email-cleared', () => this.applyServerClear());
                     this.startBackgroundSync();
                 },
 
@@ -864,12 +872,18 @@
                     } catch (_) { }
                 },
 
+                applyServerClear() {
+                    this.emails = [];
+                    this.selectedEmailId = null;
+                    sessionStorage.removeItem('email_Sanndbox_items');
+                },
+
                 clearTabCache() {
                     this.emails = [];
                     this.selectedEmailId = null;
                     sessionStorage.removeItem('email_Sanndbox_items');
                     sessionStorage.removeItem('email_Sanndbox_draft');
-                    fetch('/api/v1/emails/clear?sessionId=' + encodeURIComponent(this.sessionId), { method: 'POST' });
+                    fetch('/api/v1/emails/clear?all=1', { method: 'POST' });
                 },
 
                 handleFileUpload(event) {
