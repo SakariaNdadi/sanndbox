@@ -346,8 +346,15 @@ func (repository *InMemoryEmailRepository) ClearSession(sessionID string) {
 	repository.records = retained
 }
 
+func (repository *InMemoryEmailRepository) ClearAll() {
+	repository.mutex.Lock()
+	defer repository.mutex.Unlock()
+	repository.records = make([]EmailRecord, 0)
+}
+
 type SSEEvent struct {
 	SessionID    string
+	EventName    string
 	RenderedHTML string
 	JSONPayload  string
 }
@@ -670,12 +677,19 @@ func (handler *HTTPHandler) HandleListEmails(responseWriter http.ResponseWriter,
 	_ = json.NewEncoder(responseWriter).Encode(handler.repository.ListBySession(sessionID))
 }
 
-// HandleClearSession evicts all cached messages associated with a closed browser tab session.
-// @Summary Clear session-scoped email cache
-// @Param sessionId query string true "Browser Tab Session ID"
+// HandleClearSession deletes every email message when all=1, otherwise only the messages of the given browser tab session.
+// @Summary Clear cached email messages
+// @Param sessionId query string false "Browser Tab Session ID"
+// @Param all query bool false "Delete every message on this channel"
 // @Success 204 {string} string "Cleared"
 // @Router /api/v1/emails/clear [post]
 func (handler *HTTPHandler) HandleClearSession(responseWriter http.ResponseWriter, request *http.Request) {
+	if clearAll := request.URL.Query().Get("all"); clearAll == "1" || clearAll == "true" {
+		handler.repository.ClearAll()
+		handler.broadcaster.Broadcast(SSEEvent{EventName: "email-cleared", JSONPayload: `{"cleared":true}`})
+		responseWriter.WriteHeader(http.StatusNoContent)
+		return
+	}
 	sessionID := request.URL.Query().Get("sessionId")
 	handler.repository.ClearSession(sessionID)
 	responseWriter.WriteHeader(http.StatusNoContent)
@@ -714,7 +728,11 @@ func (handler *HTTPHandler) HandleSSE(responseWriter http.ResponseWriter, reques
 			if event.SessionID != "" && sessionID != "" && event.SessionID != sessionID {
 				continue
 			}
-			_, _ = fmt.Fprintf(responseWriter, "event: email-evaluated\ndata: %s\n\n", event.JSONPayload)
+			eventName := event.EventName
+			if eventName == "" {
+				eventName = "email-evaluated"
+			}
+			_, _ = fmt.Fprintf(responseWriter, "event: %s\ndata: %s\n\n", eventName, event.JSONPayload)
 			flusher.Flush()
 		}
 	}

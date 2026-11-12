@@ -143,14 +143,17 @@ paths:
       - description: Browser Tab Session ID
         in: query
         name: sessionId
-        required: true
         type: string
+      - description: Delete every message on this channel
+        in: query
+        name: all
+        type: boolean
       responses:
         "204":
           description: Cleared
           schema:
             type: string
-      summary: Clear session-scoped email cache
+      summary: Clear cached email messages
   /docs:
     get:
       produces:
