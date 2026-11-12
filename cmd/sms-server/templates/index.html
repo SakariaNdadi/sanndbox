@@ -107,6 +107,24 @@
                             class="text-[11px] text-rose-500 hover:underline font-medium">Clear</button>
                     </div>
 
+                    <div class="px-3 py-1.5 flex flex-wrap items-center gap-1.5 text-[10px] border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90">
+                <button @click="readFilter = 'ALL'"
+                    :class="readFilter === 'ALL' ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900' : 'bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-300'"
+                    class="px-2 py-0.5 rounded-full font-semibold transition">All (<span x-text="messages.length"></span>)</button>
+                <button @click="readFilter = 'UNREAD'"
+                    :class="readFilter === 'UNREAD' ? 'bg-sky-600 text-white' : 'bg-sky-500/10 text-sky-700 dark:text-sky-300'"
+                    class="px-2 py-0.5 rounded-full font-semibold transition">&#9679; Unread (<span x-text="messages.filter(i => isUnread(i.id)).length"></span>)</button>
+                <button @click="readFilter = 'READ'"
+                    :class="readFilter === 'READ' ? 'bg-slate-600 text-white' : 'bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-300'"
+                    class="px-2 py-0.5 rounded-full font-semibold transition">&#10003; Read (<span x-text="messages.filter(i => isSeen(i.id)).length"></span>)</button>
+                <span class="text-slate-300 dark:text-slate-700">|</span>
+                <template x-for="statusName in ['ALL', 'PASS', 'WARN', 'FAIL']" :key="statusName">
+                    <button @click="statusFilter = statusName"
+                        :class="statusFilter === statusName ? 'bg-emerald-600 text-white' : 'bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-300'"
+                        class="px-2 py-0.5 rounded-full font-semibold transition" x-text="statusName"></button>
+                </template>
+            </div>
+
                     <div id="phone-messages-scroll"
                         class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50 dark:bg-slate-950">
                         <div class="text-center">
@@ -116,7 +134,7 @@
                             </span>
                         </div>
 
-                        <template x-for="sms in messages" :key="sms.id">
+                        <template x-for="sms in visibleMessages()" :key="sms.id">
                             <div @click="selectedSMSId = sms.id; markSeen(sms.id)" class="flex flex-col items-end group cursor-pointer"
                                 :class="isSeen(sms.id) ? 'opacity-75' : ''">
                                 <div class="max-w-[85%] rounded-2xl rounded-br-sm px-3.5 py-2.5 text-xs shadow-sm transition transform group-hover:scale-[1.01]"
@@ -493,6 +511,8 @@
                 message: 'Your verification code is 948201. Valid for 5 minutes.',
                 messages: [],
                 selectedSMSId: null,
+                readFilter: 'ALL',
+                statusFilter: 'ALL',
 
                 initApp() {
                     let s = sessionStorage.getItem('sms_Sanndbox_session_id');
@@ -605,6 +625,18 @@
 
                 syncTick: 0,
 
+                matchesFilters(item) {
+                    if (this.readFilter === 'UNREAD' && !this.isUnread(item.id)) return false;
+                    if (this.readFilter === 'READ' && !this.isSeen(item.id)) return false;
+                    if (this.statusFilter !== 'ALL' && item.report.overallStatus !== this.statusFilter) return false;
+                    return true;
+                },
+
+                visibleMessages() {
+                    void this.syncTick;
+                    return this.messages.filter(item => this.matchesFilters(item));
+                },
+
                 isUnread(id) {
                     void this.syncTick;
                     return SanndboxSync.isUnread('SMS', id);
@@ -625,15 +657,24 @@
                         if (document.visibilityState === 'visible') this.syncFromServer();
                     });
                     setInterval(() => this.syncFromServer(), 15000);
+                    setTimeout(() => this.syncFromServer(), 1500);
                 },
 
                 async syncFromServer() {
                     try {
+                        const fetchStartedAt = Date.now();
                         const response = await fetch('/api/v1/sms?sessionId=' + encodeURIComponent(this.sessionId));
                         if (!response.ok) return;
                         const serverList = await response.json();
                         if (!Array.isArray(serverList)) return;
-                        let added = false;
+                        const serverIds = new Set(serverList.map(item => item.id));
+                        const staleCutoff = fetchStartedAt - 3000;
+                        const keptItems = this.messages.filter(item => serverIds.has(item.id) || Date.parse(item.timestamp) > staleCutoff);
+                        let added = keptItems.length !== this.messages.length;
+                        if (added) {
+                            this.messages = keptItems;
+                        if (this.selectedSMSId && !this.messages.some(m => m.id === this.selectedSMSId)) this.selectedSMSId = this.messages.length ? this.messages[this.messages.length - 1].id : null;
+                        }
                         serverList.slice().reverse().forEach(item => {
                             if (!this.messages.some(m => m.id === item.id)) {
                                 this.messages.push(item);
