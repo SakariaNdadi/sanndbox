@@ -761,6 +761,21 @@
             let started = false;
             let audioContext = null;
             let lastChimeAt = 0;
+            const localSeenKey = 'Sanndbox_local_seen_uids';
+            let localSeen = {};
+            try { localSeen = JSON.parse(localStorage.getItem(localSeenKey) || '{}') || {}; } catch (_) { localSeen = {}; }
+
+            function persistLocalSeen() {
+                try {
+                    const keys = Object.keys(localSeen);
+                    if (keys.length > 2000) keys.slice(0, keys.length - 2000).forEach((key) => { delete localSeen[key]; });
+                    localStorage.setItem(localSeenKey, JSON.stringify(localSeen));
+                } catch (_) { }
+            }
+
+            function isSeenUid(uid) {
+                return seenByUid.get(uid) === true || localSeen[uid] === true;
+            }
 
             function uidOf(channel, id) {
                 return String(channel).toUpperCase() + ':' + id;
@@ -862,9 +877,12 @@
 
             function markSeen(channel, id) {
                 const uid = uidOf(channel, id);
-                if (seenByUid.get(uid) === true) return;
+                const alreadyReported = seenByUid.get(uid) === true;
+                localSeen[uid] = true;
+                persistLocalSeen();
                 seenByUid.set(uid, true);
                 recount();
+                if (alreadyReported) return;
                 try {
                     fetch(portalBase + '/api/v1/seen', {
                         method: 'POST',
@@ -878,8 +896,8 @@
             return {
                 start: start,
                 markSeen: markSeen,
-                isUnread: (channel, id) => seenByUid.get(uidOf(channel, id)) === false,
-                isSeen: (channel, id) => seenByUid.get(uidOf(channel, id)) === true,
+                isUnread: (channel, id) => !isSeenUid(uidOf(channel, id)),
+                isSeen: (channel, id) => isSeenUid(uidOf(channel, id)),
                 unreadTotal: () => unreadCount
             };
         })();
