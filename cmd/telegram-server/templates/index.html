@@ -629,7 +629,7 @@
                     });
 
                     const targetId = new URLSearchParams(window.location.search).get('id');
-                    fetch('/api/v1/telegram?sessionId=' + encodeURIComponent(this.sessionId))
+                    fetch('/api/v1/telegram')
                         .then(r => r.json())
                         .then(data => {
                             if (Array.isArray(data) && data.length > 0) {
@@ -644,7 +644,7 @@
                             }
                         });
 
-                    const evtSource = new EventSource('/events?sessionId=' + encodeURIComponent(this.sessionId));
+                    const evtSource = new EventSource('/events');
                     evtSource.addEventListener('telegram-evaluated', (e) => {
                         try {
                             const rec = JSON.parse(e.data);
@@ -706,7 +706,7 @@
                 async syncFromServer() {
                     try {
                         const fetchStartedAt = Date.now();
-                        const response = await fetch('/api/v1/telegram?sessionId=' + encodeURIComponent(this.sessionId));
+                        const response = await fetch('/api/v1/telegram');
                         if (!response.ok) return;
                         const serverList = await response.json();
                         if (!Array.isArray(serverList)) return;
