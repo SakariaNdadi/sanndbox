@@ -842,15 +842,24 @@
                         if (document.visibilityState === 'visible') this.syncFromServer();
                     });
                     setInterval(() => this.syncFromServer(), 15000);
+                    setTimeout(() => this.syncFromServer(), 1500);
                 },
 
                 async syncFromServer() {
                     try {
+                        const fetchStartedAt = Date.now();
                         const response = await fetch('/api/v1/emails?sessionId=' + encodeURIComponent(this.sessionId));
                         if (!response.ok) return;
                         const serverList = await response.json();
                         if (!Array.isArray(serverList)) return;
-                        let added = false;
+                        const serverIds = new Set(serverList.map(item => item.id));
+                        const staleCutoff = fetchStartedAt - 3000;
+                        const keptItems = this.emails.filter(item => serverIds.has(item.id) || Date.parse(item.timestamp) > staleCutoff);
+                        let added = keptItems.length !== this.emails.length;
+                        if (added) {
+                            this.emails = keptItems;
+                        if (this.selectedEmailId && !this.emails.some(e => e.id === this.selectedEmailId)) this.selectedEmailId = this.emails.length ? this.emails[0].id : null;
+                        }
                         serverList.slice().reverse().forEach(item => {
                             if (!this.emails.some(e => e.id === item.id)) {
                                 this.emails.unshift(item);
