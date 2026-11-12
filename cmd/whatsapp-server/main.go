@@ -1287,8 +1287,15 @@ func (repository *InMemoryIMRepository) ClearSession(sessionID string) {
 	repository.records = retained
 }
 
+func (repository *InMemoryIMRepository) ClearAll() {
+	repository.mutex.Lock()
+	defer repository.mutex.Unlock()
+	repository.records = make([]IMRecord, 0)
+}
+
 type SSEEvent struct {
 	SessionID    string
+	EventName    string
 	RenderedHTML string
 	JSONPayload  string
 }
@@ -2316,12 +2323,19 @@ func (handler *HTTPHandler) HandleListIM(responseWriter http.ResponseWriter, req
 	_ = json.NewEncoder(responseWriter).Encode(handler.repository.ListBySession(sessionID))
 }
 
-// HandleClearSession evicts all cached WhatsApp messages associated with a closed browser tab session.
-// @Summary Clear session-scoped WhatsApp cache
-// @Param sessionId query string true "Browser Tab Session ID"
+// HandleClearSession deletes every WhatsApp message when all=1, otherwise only the messages of the given browser tab session.
+// @Summary Clear cached WhatsApp messages
+// @Param sessionId query string false "Browser Tab Session ID"
+// @Param all query bool false "Delete every message on this channel"
 // @Success 204 {string} string "Cleared"
 // @Router /api/v1/whatsapp/clear [post]
 func (handler *HTTPHandler) HandleClearSession(responseWriter http.ResponseWriter, request *http.Request) {
+	if clearAll := request.URL.Query().Get("all"); clearAll == "1" || clearAll == "true" {
+		handler.repository.ClearAll()
+		handler.broadcaster.Broadcast(SSEEvent{EventName: "whatsapp-cleared", JSONPayload: `{"cleared":true}`})
+		responseWriter.WriteHeader(http.StatusNoContent)
+		return
+	}
 	sessionID := request.URL.Query().Get("sessionId")
 	handler.repository.ClearSession(sessionID)
 	responseWriter.WriteHeader(http.StatusNoContent)
@@ -2360,7 +2374,11 @@ func (handler *HTTPHandler) HandleSSE(responseWriter http.ResponseWriter, reques
 			if event.SessionID != "" && sessionID != "" && event.SessionID != sessionID {
 				continue
 			}
-			_, _ = fmt.Fprintf(responseWriter, "event: im-evaluated\ndata: %s\n\n", event.JSONPayload)
+			eventName := event.EventName
+			if eventName == "" {
+				eventName = "im-evaluated"
+			}
+			_, _ = fmt.Fprintf(responseWriter, "event: %s\ndata: %s\n\n", eventName, event.JSONPayload)
 			flusher.Flush()
 		}
 	}

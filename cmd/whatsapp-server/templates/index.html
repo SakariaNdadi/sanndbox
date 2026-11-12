@@ -1486,11 +1486,22 @@
                 } catch (_) { }
             }
 
+            function forgetChannel(channel) {
+                const prefix = channel === 'ALL' ? '' : String(channel).toUpperCase() + ':';
+                Array.from(seenByUid.keys()).forEach((uid) => { if (uid.startsWith(prefix)) seenByUid.delete(uid); });
+                Object.keys(localSeen).forEach((uid) => { if (uid.startsWith(prefix)) delete localSeen[uid]; });
+                persistLocalSeen();
+                recount();
+            }
+
             function connectStream() {
                 try {
                     const stream = new EventSource(portalBase + '/events');
                     stream.addEventListener('communication-event', (event) => {
                         try { ingest(JSON.parse(event.data), true); } catch (_) { }
+                    });
+                    stream.addEventListener('channel-cleared', (event) => {
+                        try { forgetChannel(JSON.parse(event.data).channel); } catch (_) { }
                     });
                 } catch (_) { }
             }
@@ -1632,8 +1643,6 @@
                                     this.markSeen(match.id);
                                 }
                                 this.scrollToBottom();
-                            } else {
-                                this.triggerBotFlow('', 'Start shopping!');
                             }
                         });
 
@@ -1650,6 +1659,7 @@
                             this.scrollToBottom();
                         } catch (err) { }
                     });
+                    evtSource.addEventListener('whatsapp-cleared', () => this.applyServerClear());
                     this.startBackgroundSync();
                 },
                 scrollToBottom() {
@@ -2057,8 +2067,13 @@ export async function sendWhatsAppPayload(payload) {
                         }
                     });
                 },
+                applyServerClear() {
+                    this.records = [];
+                    this.selectedRecord = null;
+                },
+
                 clearSession() {
-                    fetch('/api/v1/whatsapp/clear?sessionId=' + encodeURIComponent(this.sessionId), { method: 'POST' })
+                    fetch('/api/v1/whatsapp/clear?all=1', { method: 'POST' })
                         .then(() => {
                             this.records = [];
                             this.selectedRecord = null;
