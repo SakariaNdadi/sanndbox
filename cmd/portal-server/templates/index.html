@@ -811,11 +811,22 @@
                 } catch (_) { }
             }
 
+            function forgetChannel(channel) {
+                const prefix = channel === 'ALL' ? '' : String(channel).toUpperCase() + ':';
+                Array.from(seenByUid.keys()).forEach((uid) => { if (uid.startsWith(prefix)) seenByUid.delete(uid); });
+                Object.keys(localSeen).forEach((uid) => { if (uid.startsWith(prefix)) delete localSeen[uid]; });
+                persistLocalSeen();
+                recount();
+            }
+
             function connectStream() {
                 try {
                     const stream = new EventSource(portalBase + '/events');
                     stream.addEventListener('communication-event', (event) => {
                         try { ingest(JSON.parse(event.data), true); } catch (_) { }
+                    });
+                    stream.addEventListener('channel-cleared', (event) => {
+                        try { forgetChannel(JSON.parse(event.data).channel); } catch (_) { }
                     });
                 } catch (_) { }
             }
@@ -896,6 +907,13 @@
                     this.refreshSnapshot(true);
 
                     const sse = new EventSource('/events');
+                    sse.addEventListener('channel-cleared', (event) => {
+                        try {
+                            const clearedChannel = JSON.parse(event.data).channel;
+                            this.items = clearedChannel === 'ALL' ? [] : this.items.filter(item => item.channel !== clearedChannel);
+                            if (this.selectedItem && !this.items.some(item => item.uid === this.selectedItem.uid)) this.selectedItem = null;
+                        } catch (_) { }
+                    });
                     sse.addEventListener('communication-event', (event) => {
                         if (this.streamPaused) return;
                         try {
