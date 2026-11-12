@@ -30,7 +30,7 @@ flowchart LR
 ```
 
 > [!TIP]
-> **Tab-Scoped Session Isolation**: Every browser tab generates its own `sessionId` stored in `sessionStorage` and connects to `/events` via Server-Sent Events (SSE). External `curl` or backend requests broadcast to all active browser tabs in real time without overwriting another tab's local state.
+> **Shared, In-Memory Data**: Every browser tab shows all of a channel's messages and receives new ones live over Server-Sent Events (`/events`), whether they come from the UI, `curl`, SMTP or a webhook. Closing or reloading tabs never deletes anything. Messages stay until you press **Clear** (which deletes that channel's messages for everyone; **Clear** on the Portal wipes all channels) or the server stops.
 
 ---
 
@@ -72,9 +72,9 @@ Provides a single entry point to launch any channel emulator, synchronize theme 
 
 ### What to Click
 1. Open `http://localhost:9080` in your browser.
-2. **Top-Right Theme Switcher**: Click **`System`**, **`Light`**, or **`Dark`** ([`cmd/portal-server/templates/index.html#L46-L56`](cmd/portal-server/templates/index.html#L46-L56)) to toggle dark mode across the UI.
+2. **Top-Right Theme Switcher**: Click **`System`**, **`Light`**, or **`Dark`** ([`cmd/portal-server/templates/index.html`](cmd/portal-server/templates/index.html)) to toggle dark mode across the UI.
 3. **Channel Cards**: Click any of the 4 cards (**`Open Email Inbox`**, **`Open Phone SMS`**, **`Open WhatsApp UI`**, **`Open Telegram UI`**) to open that emulator.
-4. **Quick External Producer Reference**: At the bottom of the page ([`cmd/portal-server/templates/index.html#L196-L229`](cmd/portal-server/templates/index.html#L196-L229)), click any `:908X/docs` link to inspect the OpenAPI 3.0 specification for that service.
+4. **Quick External Producer Reference**: At the bottom of the page ([`cmd/portal-server/templates/index.html`](cmd/portal-server/templates/index.html)), click any `:908X/docs` link to inspect the OpenAPI 3.0 specification for that service.
 
 ---
 
@@ -87,13 +87,14 @@ HTML emails render inconsistently across clients (Outlook uses Microsoft Word's 
 
 ### UI Walkthrough - What to Click
 1. Open `http://localhost:9081`.
-2. **Left Sidebar - Quick Test Presets** ([`cmd/email-server/templates/index.html#L126-L137`](cmd/email-server/templates/index.html#L126-L137)):
+2. **Left Sidebar - Quick Test Presets** ([`cmd/email-server/templates/index.html`](cmd/email-server/templates/index.html)):
    - Click **`+ Send Clean Order Email`**: Dispatches a table-based HTML email with valid viewport metadata. Notice it appears in the middle pane with a green **`PASS`** badge.
    - Click **`+ Send Flexbox Warning`**: Dispatches an HTML email using `display:flex` / `display:grid`. Notice the amber **`WARN`** badge because Outlook Desktop (Word engine) ignores modern CSS layout properties.
    - Click **`+ Send EICAR + XSS Exploit`**: Dispatches an email containing `<script>` tags and an EICAR signature attachment. Notice the red **`FAIL`** badge.
-3. **Left Sidebar - Folder Filters** ([`cmd/email-server/templates/index.html#L95-L123`](cmd/email-server/templates/index.html#L95-L123)):
+3. **Left Sidebar - Folder Filters** ([`cmd/email-server/templates/index.html`](cmd/email-server/templates/index.html)):
    - Click **`All Inbox`**, **`Verified (PASS)`**, **`Rendering Warnings`**, or **`Threat Quarantine`** to filter messages by evaluation outcome.
-4. **Right Reading Pane - Inspect Diagnostics** ([`cmd/email-server/templates/index.html#L241-L289`](cmd/email-server/templates/index.html#L241-L289)):
+   - Click **`Unread Only`**, or use the **State** (All / Unread / Read) and **Status** (PASS / WARN / FAIL) chips above the message list. Unread messages have a blue dot and bold text; clicking one marks it **`✓ Seen`** in every tab and in the Portal.
+4. **Right Reading Pane - Inspect Diagnostics** ([`cmd/email-server/templates/index.html`](cmd/email-server/templates/index.html)):
    - Select an email in the middle column.
    - In the top-right of the reading pane, click the status pill **`✓ Verified • N checks Inspect`** (or **`⚠ Warning`** / **`✕ Quarantined`**).
    - This expands the **Client Rendering & Threat Scanner Diagnostics** drawer showing each rule check (`HTML Rendering`, `Viewport`, `Gmail Clipping`, `XSS / Script Injection`, `Attachment Magic Bytes`).
@@ -101,7 +102,7 @@ HTML emails render inconsistently across clients (Outlook uses Microsoft Word's 
 5. **Compose Custom Email & Upload Attachments**:
    - Click **`Compose / Simulate`** (top-left green button).
    - Edit `From`, `To`, `Subject`, and `HTML Body`.
-   - Click **`+ Sample PDF`**, **`+ Sample Image`**, or **`+ Upload Image / PDF`** ([`cmd/email-server/templates/index.html#L386-L394`](cmd/email-server/templates/index.html#L386-L394)), then submit.
+   - Click **`+ Sample PDF`**, **`+ Sample Image`**, or **`+ Upload Image / PDF`** ([`cmd/email-server/templates/index.html`](cmd/email-server/templates/index.html)), then submit.
 6. **Top Bar - SMTP / API Guide**:
    - Click **`SMTP / API Guide`** in the header to view copy-ready `curl` and SMTP examples.
 
@@ -149,16 +150,16 @@ SMS carriers bill and fragment messages by **PDU encoding**:
 
 ### UI Walkthrough - What to Click
 1. Open `http://localhost:9082`.
-2. **Right Panel - SMS PDU Composer & Preset Simulator** ([`cmd/sms-server/templates/index.html#L169-L179`](cmd/sms-server/templates/index.html#L169-L179)):
+2. **Right Panel - SMS PDU Composer & Preset Simulator** ([`cmd/sms-server/templates/index.html`](cmd/sms-server/templates/index.html)):
    - Click **`+ GSM-7 Single Segment (PASS)`**: Sends a standard OTP message. Look at the phone screen on the left: the metadata under the blue bubble reads `GSM-7 • 1 seg (54u) • PASS`.
    - Click **`+ Emoji UCS-2 Multi-Segment (WARN)`**: Sends a message with emojis. Notice the encoding switches to `UCS-2`, the per-segment limit drops from `160` to `67`, and the status flags **`WARN`** due to multi-part concatenation cost.
    - Click **`+ 7-Segment Carrier Overflow (FAIL)`**: Sends a long payload that exceeds the 6-segment carrier threshold, triggering **`FAIL`**.
-3. **Left Panel - Interactive Smartphone Screen** ([`cmd/sms-server/templates/index.html#L79-L153`](cmd/sms-server/templates/index.html#L79-L153)):
-   - **Click any blue SMS bubble** inside the phone frame to load its breakdown in the **Selected Bubble PDU Inspection** card on the right ([`cmd/sms-server/templates/index.html#L195-L252`](cmd/sms-server/templates/index.html#L195-L252)).
+3. **Left Panel - Interactive Smartphone Screen** ([`cmd/sms-server/templates/index.html`](cmd/sms-server/templates/index.html)):
+   - **Click any blue SMS bubble** inside the phone frame to load its breakdown in the **Selected Bubble PDU Inspection** card on the right ([`cmd/sms-server/templates/index.html`](cmd/sms-server/templates/index.html)).
    - Inspect the 3 metric tiles: **Encoding Alphabet**, **PDU Segments**, and **Total Units / Frame Cap**.
    - Type a message in the bottom input bar of the phone (`iMessage / SMS text...`) - try typing `Cost: 5 €` vs `Cost: 5 🚀` and click the blue **`↑`** send button to see the difference between a 2-septet GSM-7 extension character (`€`) and a UCS-2 downgrade (`🚀`).
 4. **Top Bar - External SMS API Guide**:
-   - Click **`External SMS API Guide`** ([`cmd/sms-server/templates/index.html#L54-L57`](cmd/sms-server/templates/index.html#L54-L57)) and click **`Copy cURL Command`**.
+   - Click **`External SMS API Guide`** ([`cmd/sms-server/templates/index.html`](cmd/sms-server/templates/index.html)) and click **`Copy cURL Command`**.
 
 ### External Developer Integration
 ```bash
@@ -188,41 +189,41 @@ Emulates Meta's official WhatsApp Business Platform (`v21.0`) and the `fbsamples
 
 ### UI Walkthrough - What to Click (4 Top Navigation Tabs)
 
-Open `http://localhost:9083`. Notice the 4 view tabs in the top green header ([`cmd/whatsapp-server/templates/index.html#L96-L120`](cmd/whatsapp-server/templates/index.html#L96-L120)): **`Chat Preview`**, **`Template Studio`**, **`Setup & .env`**, and **`API Guide`**.
+Open `http://localhost:9083`. Notice the 4 view tabs in the top green header ([`cmd/whatsapp-server/templates/index.html`](cmd/whatsapp-server/templates/index.html)): **`Chat Preview`**, **`Template Studio`**, **`Setup & .env`**, and **`API Guide`**.
 
 #### Tab 1: `Chat Preview`
-1. **Customer Journey Simulator (Left Sidebar)** ([`cmd/whatsapp-server/templates/index.html#L183-L206`](cmd/whatsapp-server/templates/index.html#L183-L206)):
+1. **Customer Journey Simulator (Left Sidebar)** ([`cmd/whatsapp-server/templates/index.html`](cmd/whatsapp-server/templates/index.html)):
    - Click **`"Start shopping!"`**: Simulates an inbound customer message (`User → Business`) followed by Jasper's Market's automated interactive reply containing 3 CTA buttons (`Shop online`, `Get recipe ideas`, `Current promo`).
    - **Inside the Chat Window**: Click the interactive reply buttons directly on the WhatsApp bubble (**`Shop online`**, **`Get recipe ideas`**, **`Current promo`**) or click **`Free Delivery`**, **`20% Off Strawberries`**, and **`Recipe Carousel`** in the left sidebar to see full-bleed photo headers, promo copy-code buttons (`BERRIES20`), and 2-card horizontal swipeable carousels.
-2. **Verification & OTP (`AUTHENTICATION`)** ([`cmd/whatsapp-server/templates/index.html#L208-L234`](cmd/whatsapp-server/templates/index.html#L208-L234)):
+2. **Verification & OTP (`AUTHENTICATION`)** ([`cmd/whatsapp-server/templates/index.html`](cmd/whatsapp-server/templates/index.html)):
    - Click **`OTP Copy Code`**: Sends `auth_otp_verification` with a `Copy code` button and 10-minute expiration footer.
    - Click **`2FA One-Tap`**: Sends `auth_2fa_onetap_autofill` validating Android `package_name` and 11-character `signature_hash`.
-3. **Utility Messages (`UTILITY`) & Policy Violation Check** ([`cmd/whatsapp-server/templates/index.html#L236-L285`](cmd/whatsapp-server/templates/index.html#L236-L285)):
+3. **Utility Messages (`UTILITY`) & Policy Violation Check** ([`cmd/whatsapp-server/templates/index.html`](cmd/whatsapp-server/templates/index.html)):
    - Click **`Order Receipt`**, **`Delivery ETA`**, **`Payment Alert`**, **`Pickup Reminder`**, or **`Renewal Billing`** to test transactional templates with PDF/Image headers and quick-reply buttons.
    - Click **`Utility + Promo`** (amber button): Sends a `UTILITY` template polluted with promotional discount copy. Click the resulting bubble to see why Meta WABA flags it as **`WARN`** (risk of automatic reclassification to `MARKETING` billing).
-4. **Developer Test Scenarios (Fraud Audit & Media Limits)** ([`cmd/whatsapp-server/templates/index.html#L287-L316`](cmd/whatsapp-server/templates/index.html#L287-L316)):
+4. **Developer Test Scenarios (Fraud Audit & Media Limits)** ([`cmd/whatsapp-server/templates/index.html`](cmd/whatsapp-server/templates/index.html)):
    - Click **`Per-Lender Fraud Audit Alert`**: Dispatches a grouped fraud alert with a `caseKey` and attached SAR/STR PDF bundle (`PASS`).
    - Click **`Legacy Alert (Missing caseKey)`**: Triggers a **`WARN`** showing that legacy alerts without `caseKey` emit 1 fresh alert before DB grouping.
    - Click **`Oversized Image (20MB > 16MB)`**: Triggers a **`FAIL`** demonstrating Meta's 16MB image size ceiling.
-5. **15s Read-Receipt Follow-Up & Right Diagnostics Drawer** ([`cmd/whatsapp-server/templates/index.html#L738-L847`](cmd/whatsapp-server/templates/index.html#L738-L847)):
+5. **15s Read-Receipt Follow-Up & Right Diagnostics Drawer** ([`cmd/whatsapp-server/templates/index.html`](cmd/whatsapp-server/templates/index.html)):
    - Click **`WABA Diagnostics`** in the top-right header (or click any message bubble in the chat).
-   - When an interactive bot response is selected, look for the blue **`15s Redis Follow-Up Armed`** banner in the right drawer ([`cmd/whatsapp-server/templates/index.html#L781-L795`](cmd/whatsapp-server/templates/index.html#L781-L795)) and click **`Simulate Read ✓✓`** (or wait 15 seconds) to watch Jasper's Market automatically send the `"Is there anything else we can help you with?"` follow-up prompt.
-6. **Bottom Composer Bar** ([`cmd/whatsapp-server/templates/index.html#L702-L734`](cmd/whatsapp-server/templates/index.html#L702-L734)):
+   - When an interactive bot response is selected, look for the blue **`15s Redis Follow-Up Armed`** banner in the right drawer ([`cmd/whatsapp-server/templates/index.html`](cmd/whatsapp-server/templates/index.html)) and click **`Simulate Read ✓✓`** (or wait 15 seconds) to watch Jasper's Market automatically send the `"Is there anything else we can help you with?"` follow-up prompt.
+6. **Bottom Composer Bar** ([`cmd/whatsapp-server/templates/index.html`](cmd/whatsapp-server/templates/index.html)):
    - Click the direction toggle button **`Business → User`** / **`User → Business`** to switch between sending outbound business messages and simulating inbound customer replies.
    - Click the paperclip icon to attach an image or PDF.
 
 #### Tab 2: `Template Studio`
-1. Click **`Template Studio`** in the top bar ([`cmd/whatsapp-server/templates/index.html#L851-L1107`](cmd/whatsapp-server/templates/index.html#L851-L1107)).
+1. Click **`Template Studio`** in the top bar ([`cmd/whatsapp-server/templates/index.html`](cmd/whatsapp-server/templates/index.html)).
 2. Browse preloaded templates on the left and click **`Send to Chat →`** on any card.
 3. Use the **Create Authentication / Utility / Marketing Template** form on the right to build a custom template with `{{1}}`, `{{2}}` variables, watch the **Live Customer View** preview update as you type, and click **`Save & Send Template to Chat`**.
 
 #### Tab 3: `Setup & .env`
-1. Click **`Setup & .env`** in the top bar ([`cmd/whatsapp-server/templates/index.html#L1110-L1167`](cmd/whatsapp-server/templates/index.html#L1110-L1167)).
+1. Click **`Setup & .env`** in the top bar ([`cmd/whatsapp-server/templates/index.html`](cmd/whatsapp-server/templates/index.html)).
 2. Edit `PHONE_NUMBER_ID`, `WABA_ID`, `GROCERIES_MEDIA_ID`, or `STRAWBERRIES_MEDIA_ID` and click **`Validate & Save .env`**.
 3. Click **`Test '12345' Placeholder Error`** to see how the configurator catches unconfigured placeholder media IDs (`MediaIDPlaceholder`), or click **`Copy .env`** to copy the generated environment file.
 
 #### Tab 4: `API Guide`
-1. Click **`API Guide`** in the top bar ([`cmd/whatsapp-server/templates/index.html#L1170-L1200`](cmd/whatsapp-server/templates/index.html#L1170-L1200)) for copy-ready `curl` commands for every Cloud API endpoint.
+1. Click **`API Guide`** in the top bar ([`cmd/whatsapp-server/templates/index.html`](cmd/whatsapp-server/templates/index.html)) for copy-ready `curl` commands for every Cloud API endpoint.
 
 ### External Developer Integration
 ```bash
@@ -276,14 +277,14 @@ Validates Telegram RPC requests against official `core.telegram.org/methods` MTP
 
 ### UI Walkthrough - What to Click
 1. Open `http://localhost:9084`.
-2. **Left Sidebar - Telegram Scenarios** ([`cmd/telegram-server/templates/index.html#L135-L158`](cmd/telegram-server/templates/index.html#L135-L158)):
+2. **Left Sidebar - Telegram Scenarios** ([`cmd/telegram-server/templates/index.html`](cmd/telegram-server/templates/index.html)):
    - Click **`Fraud Audit Summary`**: Invokes `messages.sendMessage` to `@fraud_audit_ops` with a valid 64-bit `randomId`.
    - Click **`Simulator Chart Photo`**: Invokes `messages.sendMedia` with `tlType: InputMediaUploadedPhoto`, rendering an inline photo bubble.
    - Click **`SAR/STR PDF Bundle`**: Invokes `messages.sendMedia` with `tlType: InputMediaUploadedDocument`, rendering a Telegram document card with circular file icon and byte size.
    - Click **`Send 🔥 Reaction`**: Invokes `messages.sendReaction`, attaching a `🔥 1` reaction pill to the message bubble.
-3. **Left Sidebar - MTProto Method Selector** ([`cmd/telegram-server/templates/index.html#L161-L177`](cmd/telegram-server/templates/index.html#L161-L177)):
+3. **Left Sidebar - MTProto Method Selector** ([`cmd/telegram-server/templates/index.html`](cmd/telegram-server/templates/index.html)):
    - Use the dropdown to switch between all 10 supported MTProto methods (`messages.sendMessage`, `messages.sendMedia`, `messages.sendMultiMedia`, `messages.forwardMessages`, `messages.editMessage`, `messages.deleteMessages`, `messages.sendReaction`, `messages.getHistory`, `channels.ExportMessageLink`, `users.getFullUser`).
-4. **Center Chat & Right MTProto Diagnostics Drawer** ([`cmd/telegram-server/templates/index.html#L241-L400`](cmd/telegram-server/templates/index.html#L241-L400)):
+4. **Center Chat & Right MTProto Diagnostics Drawer** ([`cmd/telegram-server/templates/index.html`](cmd/telegram-server/templates/index.html)):
    - Click any green/blue Telegram bubble (or the **`✓ PASS`** pill beside it) to open the **MTProto Method Inspector** on the right.
    - Inspect the expected **Return TL** type (`Updates`, `messages.Messages`, `ExportedMessageLink`, `users.UserFull`), the `random_id`, and each TL-Schema validation check.
    - In the inspector drawer, you can also edit advanced parameters (`peer`, `randomId` - try setting `randomId` to `0` on `messages.sendMessage` to see the idempotency warning/failure) and click the paperclip icon in the bottom bar to attach custom images or PDFs.
