@@ -548,7 +548,7 @@
                         } catch (_) { }
                     }
 
-                    fetch('/api/v1/sms?sessionId=' + encodeURIComponent(this.sessionId))
+                    fetch('/api/v1/sms')
                         .then(r => r.json())
                         .then(serverList => {
                             if (Array.isArray(serverList) && serverList.length > 0) {
@@ -569,7 +569,7 @@
                         })
                         .catch(() => { });
 
-                    const sse = new EventSource('/events?sessionId=' + encodeURIComponent(this.sessionId));
+                    const sse = new EventSource('/events');
                     sse.addEventListener('sms-evaluated', (event) => {
                         try {
                             const incoming = JSON.parse(event.data);
@@ -671,7 +671,7 @@
                 async syncFromServer() {
                     try {
                         const fetchStartedAt = Date.now();
-                        const response = await fetch('/api/v1/sms?sessionId=' + encodeURIComponent(this.sessionId));
+                        const response = await fetch('/api/v1/sms');
                         if (!response.ok) return;
                         const serverList = await response.json();
                         if (!Array.isArray(serverList)) return;

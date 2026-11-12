@@ -731,7 +731,7 @@
                         } catch (_) { }
                     }
 
-                    fetch('/api/v1/emails?sessionId=' + encodeURIComponent(this.sessionId))
+                    fetch('/api/v1/emails')
                         .then(r => r.json())
                         .then(serverList => {
                             if (Array.isArray(serverList) && serverList.length > 0) {
@@ -751,7 +751,7 @@
                         })
                         .catch(() => { });
 
-                    const sse = new EventSource('/events?sessionId=' + encodeURIComponent(this.sessionId));
+                    const sse = new EventSource('/events');
                     sse.addEventListener('email-evaluated', (event) => {
                         try {
                             const incoming = JSON.parse(event.data);
@@ -850,7 +850,7 @@
                 async syncFromServer() {
                     try {
                         const fetchStartedAt = Date.now();
-                        const response = await fetch('/api/v1/emails?sessionId=' + encodeURIComponent(this.sessionId));
+                        const response = await fetch('/api/v1/emails');
                         if (!response.ok) return;
                         const serverList = await response.json();
                         if (!Array.isArray(serverList)) return;
